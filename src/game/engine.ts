@@ -1,7 +1,8 @@
 import type { LevelDef, LevelObject, Rect, Vec2 } from "./types";
 import { InputState } from "./input";
+import { Particles } from "./particles";
+import { ITEMS } from "./items";
 import { DIFFICULTIES, type Difficulty, type DifficultyConfig } from "@/store/gameStore";
-import { soundManager } from "./soundManager";
 
 const CAT_SIZE = 64;
 const WALK_SPEED = 230; // px/sec
@@ -31,8 +32,6 @@ export type EngineEvents = {
   onEnergyDelta: (delta: number) => void;
   onSprintState?: (sprinting: boolean) => void;
 };
-
-type Dust = { x: number; y: number; life: number; max: number; r: number };
 
 export class GameEngine {
   pos: Vec2;
@@ -68,26 +67,24 @@ export class GameEngine {
   collectedThisRun = new Set<string>();
   private lastNearbyId: string | null = null;
   private lastSprinting = false;
-  private cam: Vec2 = { x: 0, y: 0 };
+  cam: Vec2 = { x: 0, y: 0 };
   private camLead: Vec2 = { x: 0, y: 0 };
   private camInit = false;
-  private zoom = 1;
-  private dust: Dust[] = [];
+  zoom = 1;
+  readonly particles = new Particles();
   private dustTimer = 0;
-  private pawPrints: { x: number; y: number; alpha: number; life: number; maxLife: number; isLeft: boolean }[] = [];
-  private bees: { id: string; cx: number; cy: number; radius: number; angle: number; speed: number; x: number; y: number }[] = [];
-  private particles: {
-    x: number;
-    y: number;
-    vx: number;
-    vy: number;
-    color: string;
-    size: number;
-    alpha: number;
-    life: number;
-    maxLife: number;
-    type: "star" | "ember" | "dust" | "star-sky";
-  }[] = [];
+  /** Visible world rect, refreshed each render and reused by the particle system. */
+  private view: Rect = { x: 0, y: 0, w: 0, h: 0 };
+  /** Decaying screen-shake magnitude in world px. */
+  private shake = 0;
+  /**
+   * The cat sprite ships at 1024x1024 but draws at ~67x118. Resampling that
+   * 15x downscale every frame is the single most expensive thing the renderer
+   * did, so bake it once into a small canvas and blit that instead.
+   */
+  private catCache: HTMLCanvasElement | null = null;
+  /** Supersample factor: covers max zoom (2.2) x devicePixelRatio (2). */
+  private static readonly CAT_CACHE_SS = 4;
   /** mirror of energy from store, set externally */
   energy = 100;
   /** difficulty tunables, set externally */
@@ -98,26 +95,11 @@ export class GameEngine {
     this.catImg = catImg;
     this.bgImg = bgImg;
     this.events = events;
+    this.lightDir =
+      level.ambient === "night" ? { x: 0.18, y: 0.42 }   // moon, high and slightly right
+      : level.ambient === "dim" ? { x: 0.34, y: 0.58 }   // one narrow attic window
+      : { x: -0.42, y: 0.55 };                           // afternoon sun from the left
     this.pos = { ...level.spawn };
-
-    // Initialize animated bees
-    for (const o of level.objects) {
-      if (o.kind === "trigger" && o.danger && o.id.includes("bee")) {
-        const cx = o.rect.x + o.rect.w / 2;
-        const cy = o.rect.y + o.rect.h / 2;
-        this.bees.push({
-          id: o.id,
-          cx,
-          cy,
-          radius: o.rect.w * 0.45,
-          angle: Math.random() * Math.PI * 2,
-          speed: 1.8 + Math.random() * 0.6,
-          x: cx,
-          y: cy
-        });
-      }
-    }
-
     // Safety: nudge spawn out of any overlapping obstacle.
     if (this.collidesObstacle(this.pos)) {
       const step = 12;
@@ -132,7 +114,6 @@ export class GameEngine {
 
   start(ctx: CanvasRenderingContext2D) {
     this.input.attach();
-    soundManager.playBGM(this.level.id);
     const loop = (ts: number) => {
       if (!this.lastTs) this.lastTs = ts;
       const dt = Math.min(0.05, (ts - this.lastTs) / 1000);
@@ -147,7 +128,6 @@ export class GameEngine {
   stop() {
     cancelAnimationFrame(this.rafId);
     this.input.detach();
-    soundManager.stopBGM();
   }
 
   markCollected(ids: string[]) {
@@ -181,27 +161,6 @@ export class GameEngine {
   }
 
   private update(dt: number) {
-    // Update bees + calculate closest distance to player
-    let minBeeDist = Infinity;
-    for (const b of this.bees) {
-      b.angle += b.speed * dt;
-      b.x = b.cx + Math.cos(b.angle) * b.radius;
-      b.y = b.cy + Math.sin(b.angle) * b.radius;
-
-      // Update the LevelObject rect dynamically so Edek collides with the animated bee!
-      const o = this.level.objects.find((obj) => obj.id === b.id);
-      if (o) {
-        o.rect = { x: b.x - 12, y: b.y - 12, w: 24, h: 24 };
-      }
-
-      const d = dist(this.pos, b);
-      if (d < minBeeDist) minBeeDist = d;
-    }
-
-    if (this.bees.length > 0) {
-      soundManager.updateBeeWarning(minBeeDist, 280);
-    }
-
     const diff: DifficultyConfig = DIFFICULTIES[this.difficulty];
     const sensitivity = Math.max(0.5, Math.min(1.5, this.input.settings.sensitivity));
     const dir = this.input.getDirection();
@@ -272,31 +231,7 @@ export class GameEngine {
 
     // walk cycle phase: faster as we run, near-zero at idle
     const cycleHz = 0 + this.walkBlend * 9 + this.runBlend * 7; // walk ~9Hz, run ~16Hz
-    const prevStep = Math.floor(this.walkPhase / Math.PI);
     this.walkPhase += dt * Math.max(2, cycleHz);
-    const nextStep = Math.floor(this.walkPhase / Math.PI);
-
-    // Spawn paw prints when Edek takes steps
-    if (this.moving && nextStep !== prevStep) {
-      const isLeft = nextStep % 2 === 0;
-      const moveAngle = this.facingAngle - Math.PI / 2; // actual motion direction
-      const perpAngle = moveAngle + (isLeft ? -Math.PI / 2 : Math.PI / 2);
-      const sideOffset = 13;
-      const backOffset = 10;
-      const px = this.pos.x - Math.cos(moveAngle) * backOffset + Math.cos(perpAngle) * sideOffset;
-      const py = this.pos.y - Math.sin(moveAngle) * backOffset + Math.sin(perpAngle) * sideOffset;
-
-      this.pawPrints.push({
-        x: px,
-        y: py,
-        alpha: this.level.ambient === "night" ? 0.28
-             : this.level.ambient === "dim" ? 0.35
-             : 0.22,
-        life: 0,
-        maxLife: 2.2, // seconds
-        isLeft,
-      });
-    }
 
     // idle timer for micro-animations (tail flick, head turn)
     if (targetGait === 0) this.idleTimer += dt; else this.idleTimer = 0;
@@ -318,26 +253,21 @@ export class GameEngine {
     if (!this.collidesObstacle(ny)) this.pos.y = ny.y; else this.vel.y = 0;
     if (this.moving) this.events.onMove(this.pos);
 
-    // dust particles when sprinting
+    // Paw dust while sprinting.
     if (this.sprinting && this.moving) {
       this.dustTimer -= dt;
       if (this.dustTimer <= 0) {
         this.dustTimer = 0.06;
-        this.dust.push({
-          x: this.pos.x + (Math.random() - 0.5) * 14,
-          y: this.pos.y + CAT_SIZE / 2 - 6,
-          life: 0,
-          max: 0.45,
-          r: 4 + Math.random() * 4,
-        });
+        this.particles.spawnFootDust(this.pos.x, this.pos.y + CAT_SIZE / 2 - 6);
       }
     }
-    for (const p of this.dust) p.life += dt;
-    this.dust = this.dust.filter((p) => p.life < p.max);
+    // Ambient drift is decorative motion; event bursts stay so feedback is not lost.
+    const ambientFx = this.input.settings.reducedMotion ? undefined : this.level.ambientFx;
+    this.particles.update(dt, ambientFx, this.view);
 
-    // Update paw prints
-    for (const p of this.pawPrints) p.life += dt;
-    this.pawPrints = this.pawPrints.filter((p) => p.life < p.maxLife);
+    // Screen shake decays exponentially back to rest.
+    if (this.shake > 0.01) this.shake *= Math.max(0, 1 - 9 * dt);
+    else this.shake = 0;
 
     this.dangerCooldown = Math.max(0, this.dangerCooldown - dt);
 
@@ -345,12 +275,14 @@ export class GameEngine {
     for (const o of this.level.objects) {
       if (o.kind === "item" && o.itemId && !this.collectedThisRun.has(o.id) && rectsOverlap(cr, o.rect)) {
         this.collectedThisRun.add(o.id);
-        this.spawnPickupParticles(o.rect.x + o.rect.w / 2, o.rect.y + o.rect.h / 2);
+        this.particles.burstPickup(o.rect.x + o.rect.w / 2, o.rect.y + o.rect.h / 2);
         this.events.onPickUp(o);
       }
       if (o.kind === "trigger" && o.danger && rectsOverlap(cr, o.rect) && this.dangerCooldown === 0) {
         this.dangerCooldown = 1.2;
-        this.spawnStingParticles(this.pos.x, this.pos.y);
+        this.particles.burstSting(this.pos.x, this.pos.y);
+        // Camera shake is exactly the kind of motion reduced-motion users opt out of.
+        if (!this.input.settings.reducedMotion) this.shake = 9;
         this.events.onDanger(o);
       }
     }
@@ -365,103 +297,6 @@ export class GameEngine {
     if (this.input.consumeInteract() && nearest) {
       if (nearest.kind === "npc") this.events.onTalk(nearest);
       else this.events.onGoal(nearest);
-    }
-
-    // Update particles
-    for (const p of this.particles) {
-      p.life += dt;
-      p.x += p.vx * dt;
-      p.y += p.vy * dt;
-      if (p.type === "ember") {
-        p.vx += Math.sin(p.life * 5) * 6 * dt; // sway rising embers
-      }
-    }
-    this.particles = this.particles.filter((p) => p.life < p.maxLife);
-
-    // Spawn ambient level particles
-    if (this.level.id === "1" && Math.random() < 0.15) {
-      // Salon: Fireplace embers
-      this.particles.push({
-        x: 770 + Math.random() * 60,
-        y: 150 + Math.random() * 20,
-        vx: (Math.random() - 0.5) * 15,
-        vy: -35 - Math.random() * 30,
-        color: `hsl(${15 + Math.random() * 25}, 100%, ${50 + Math.random() * 20}%)`,
-        size: 1.5 + Math.random() * 2,
-        alpha: 0.95,
-        life: 0,
-        maxLife: 0.8 + Math.random() * 0.8,
-        type: "ember",
-      });
-    }
-    else if (this.level.id === "3" && this.particles.filter(p => p.type === "dust").length < 60 && Math.random() < 0.3) {
-      // Strych: Drifting dust motes
-      this.particles.push({
-        x: Math.random() * this.level.width,
-        y: Math.random() * this.level.height,
-        vx: (Math.random() - 0.5) * 6,
-        vy: (Math.random() - 0.2) * 5,
-        color: "rgba(235, 235, 235, 0.4)",
-        size: 1.0 + Math.random() * 1.8,
-        alpha: 0.2 + Math.random() * 0.4,
-        life: 0,
-        maxLife: 4 + Math.random() * 6,
-        type: "dust",
-      });
-    }
-    else if (this.level.id === "4" && Math.random() < 0.003) {
-      // Dach: Falling shooting star
-      const startX = 200 + Math.random() * (this.level.width - 200);
-      this.particles.push({
-        x: startX,
-        y: 50,
-        vx: -180 - Math.random() * 120,
-        vy: 90 + Math.random() * 60,
-        color: "rgba(255, 245, 220, 0.95)",
-        size: 2.0 + Math.random() * 1.5,
-        alpha: 1,
-        life: 0,
-        maxLife: 1.2 + Math.random() * 0.8,
-        type: "star-sky",
-      });
-    }
-  }
-
-  private spawnPickupParticles(x: number, y: number) {
-    for (let i = 0; i < 15; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const speed = 40 + Math.random() * 80;
-      this.particles.push({
-        x,
-        y,
-        vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed,
-        color: `hsl(${40 + Math.random() * 15}, 100%, ${65 + Math.random() * 20}%)`, // golden chime
-        size: 2 + Math.random() * 3,
-        alpha: 1,
-        life: 0,
-        maxLife: 0.6 + Math.random() * 0.5,
-        type: "star",
-      });
-    }
-  }
-
-  private spawnStingParticles(x: number, y: number) {
-    for (let i = 0; i < 15; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const speed = 30 + Math.random() * 60;
-      this.particles.push({
-        x,
-        y,
-        vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed,
-        color: "#ff3b30", // red impact
-        size: 2.5 + Math.random() * 3.5,
-        alpha: 1,
-        life: 0,
-        maxLife: 0.5 + Math.random() * 0.4,
-        type: "star",
-      });
     }
   }
 
@@ -535,9 +370,19 @@ export class GameEngine {
       if (Math.abs(dx) > dzX) this.cam.x += (dx - Math.sign(dx) * dzX) * followK;
       if (Math.abs(dy) > dzY) this.cam.y += (dy - Math.sign(dy) * dzY) * followK;
     }
+    // Publish the visible rect so the particle system can seed and cull against it.
+    this.view.x = this.cam.x;
+    this.view.y = this.cam.y;
+    this.view.w = vw;
+    this.view.h = vh;
+
     // Subpixel-stable in world space; rounding in screen space below.
-    const camX = this.cam.x;
-    const camY = this.cam.y;
+    let camX = this.cam.x;
+    let camY = this.cam.y;
+    if (this.shake > 0) {
+      camX += (Math.random() - 0.5) * this.shake;
+      camY += (Math.random() - 0.5) * this.shake;
+    }
 
     // --- Background fill (screen space) ---
     ctx.fillStyle = "#1a1410";
@@ -549,74 +394,14 @@ export class GameEngine {
     ctx.translate(-camX, -camY);
 
     if (this.bgImg.complete) {
+      // "high" here costs a full-resolution resample of a 1920x1080 image every
+      // frame; at this scale "low" is visually indistinguishable.
+      ctx.imageSmoothingQuality = "low";
       ctx.drawImage(this.bgImg, 0, 0, this.level.width, this.level.height);
     }
 
-    // --- Paw prints (behind everything else) ---
-    for (const p of this.pawPrints) {
-      ctx.save();
-      const ageRatio = p.life / p.maxLife;
-      ctx.globalAlpha = p.alpha * (1 - ageRatio);
-      ctx.fillStyle = this.level.ambient === "night" ? "rgba(255, 255, 255, 0.16)"
-                    : this.level.ambient === "dim" ? "rgba(0, 0, 0, 0.22)"
-                    : "rgba(0, 0, 0, 0.16)";
-
-      ctx.translate(p.x, p.y);
-      // Main pad
-      ctx.beginPath();
-      ctx.ellipse(0, 0, 3.2, 2.7, 0, 0, Math.PI * 2);
-      ctx.fill();
-      // 4 tiny toes
-      const toes = [
-        { x: -2.4, y: -2.7 },
-        { x: -0.8, y: -3.8 },
-        { x: 0.8, y: -3.8 },
-        { x: 2.4, y: -2.7 },
-      ];
-      for (const t of toes) {
-        ctx.beginPath();
-        ctx.arc(t.x, t.y, 1.1, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      ctx.restore();
-    }
-
-    // interactable highlights (world space now)
-    for (const o of this.level.objects) {
-      if (o.kind === "item" && this.collectedThisRun.has(o.id)) continue;
-      if (o.kind === "item" || o.kind === "npc" || o.kind === "goal") {
-        const cx = o.rect.x + o.rect.w / 2;
-        const cy = o.rect.y + o.rect.h / 2;
-        const pulse = 0.55 + 0.45 * Math.sin(performance.now() / 320);
-        ctx.save();
-        ctx.globalAlpha = 0.32 * pulse;
-        ctx.fillStyle = o.kind === "item" ? "#ffd76b" : o.kind === "npc" ? "#9be38a" : "#7ec3ff";
-        ctx.beginPath();
-        ctx.arc(cx, cy + 4, Math.max(o.rect.w, o.rect.h) * 0.7, 0, Math.PI * 2);
-        ctx.fill();
-        if (this.lastNearbyId === o.id) {
-          ctx.globalAlpha = 0.9;
-          ctx.strokeStyle = "#ffffff";
-          ctx.lineWidth = 2 / zoom;
-          ctx.beginPath();
-          ctx.arc(cx, cy + 4, Math.max(o.rect.w, o.rect.h) * 0.85, 0, Math.PI * 2);
-          ctx.stroke();
-        }
-        ctx.restore();
-      }
-    }
-
-    // dust particles (under cat)
-    for (const p of this.dust) {
-      const t = p.life / p.max;
-      ctx.save();
-      ctx.globalAlpha = (1 - t) * 0.55;
-      ctx.fillStyle = "#d6c9b8";
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r * (1 + t * 0.8), 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-    }
+    // Ground-contact particles sit beneath every actor.
+    this.particles.draw(ctx, "ground");
 
     // cat — world space
     const eb = this.exhaustBlend;
@@ -628,18 +413,22 @@ export class GameEngine {
     const breathAmp = 0.6 + eb * 1.0;
     const breath = Math.sin(performance.now() / breathHz) * breathAmp * (1 - this.walkBlend);
 
-    ctx.save();
-    ctx.translate(this.pos.x, this.pos.y + bob + breath);
-
-    // soft ground shadow (does not rotate; scales subtly with bob for grounding)
-    const shadowScale = 1 - Math.abs(bob) * 0.015;
-    ctx.fillStyle = "rgba(0,0,0,0.38)";
-    ctx.beginPath();
-    ctx.ellipse(0, CAT_SIZE * 0.36, (CAT_SIZE * 0.65) * shadowScale, 9 * shadowScale, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    this.drawCat(ctx);
-    ctx.restore();
+    // --- Depth pass: actors sorted by ground line, so the cat passes behind
+    // things standing in front of it and in front of things behind it. ---
+    this.collectActors();
+    for (let i = 0; i < this.actorCount; i++) {
+      const a = this.actors[i];
+      if (!a.obj) {
+        ctx.save();
+        ctx.translate(this.pos.x, this.pos.y + bob + breath);
+        this.drawShadow(ctx, CAT_SIZE / 2.2, 1 - Math.abs(bob) * 0.015, CAT_SIZE / 2 - 6);
+        ctx.rotate(this.renderAngle);
+        this.drawCat(ctx);
+        ctx.restore();
+      } else {
+        this.drawObject(ctx, a.obj, zoom);
+      }
+    }
 
     // speed lines (world space, behind cat in screen)
     if (this.sprinting && this.moving) {
@@ -665,133 +454,235 @@ export class GameEngine {
       ctx.restore();
     }
 
-    // --- Render animated bees (world space) ---
-    for (const b of this.bees) {
-      ctx.save();
-      ctx.translate(b.x, b.y);
-
-      // Face flight direction
-      const flightAngle = b.angle + Math.PI / 2;
-      ctx.rotate(flightAngle);
-
-      // Shadow under bee
-      ctx.fillStyle = "rgba(0,0,0,0.25)";
-      ctx.beginPath();
-      ctx.ellipse(0, 16, 8, 4, 0, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Bee body
-      ctx.fillStyle = "#ffcc00";
-      ctx.beginPath();
-      ctx.ellipse(0, 0, 10, 8, 0, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Stripes
-      ctx.strokeStyle = "#1a1a1a";
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(-3, -7); ctx.lineTo(-3, 7);
-      ctx.moveTo(3, -7); ctx.lineTo(3, 7);
-      ctx.stroke();
-
-      // Head
-      ctx.fillStyle = "#1a1a1a";
-      ctx.beginPath();
-      ctx.arc(8, 0, 4.5, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Eyes
-      ctx.fillStyle = "#ffffff";
-      ctx.beginPath();
-      ctx.arc(9, -2, 1, 0, Math.PI * 2);
-      ctx.arc(9, 2, 1, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Wing vibe
-      const wingVibe = Math.sin(performance.now() * 0.15) * 0.15;
-      ctx.fillStyle = "rgba(230, 245, 255, 0.65)";
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.85)";
-      ctx.lineWidth = 0.8;
-
-      ctx.save();
-      ctx.translate(-2, -5);
-      ctx.rotate(-Math.PI / 3 + wingVibe);
-      ctx.beginPath();
-      ctx.ellipse(0, 0, 8, 4, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-      ctx.restore();
-
-      ctx.save();
-      ctx.translate(-2, 5);
-      ctx.rotate(Math.PI / 3 - wingVibe);
-      ctx.beginPath();
-      ctx.ellipse(0, 0, 8, 4, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-      ctx.restore();
-
-      ctx.restore();
-    }
-
-    // --- Render particles (world space) ---
-    for (const p of this.particles) {
-      const ageRatio = p.life / p.maxLife;
-      const alpha = p.alpha * (1 - ageRatio);
-      ctx.save();
-      ctx.globalAlpha = alpha;
-
-      if (p.type === "star") {
-        ctx.fillStyle = p.color;
-        ctx.shadowColor = p.color;
-        ctx.shadowBlur = 8;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fill();
-      } 
-      else if (p.type === "ember") {
-        ctx.fillStyle = p.color;
-        ctx.shadowColor = p.color;
-        ctx.shadowBlur = 4;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fill();
-      } 
-      else if (p.type === "dust") {
-        ctx.fillStyle = p.color;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fill();
-      } 
-      else if (p.type === "star-sky") {
-        ctx.strokeStyle = p.color;
-        ctx.lineWidth = p.size;
-        ctx.lineCap = "round";
-        ctx.beginPath();
-        ctx.moveTo(p.x, p.y);
-        ctx.lineTo(p.x - p.vx * 0.08, p.y - p.vy * 0.08);
-        ctx.stroke();
-      }
-      ctx.restore();
-    }
+    // Airborne particles (ambient drift, sparkles) sit above the cat.
+    this.particles.draw(ctx, "air");
 
     ctx.restore(); // end world transform
 
-    // Vignette (screen space) centered on cat's screen position
-    if (this.level.ambient === "dim" || this.level.ambient === "night") {
-      const catScreenX = (this.pos.x - camX) * zoom;
-      const catScreenY = (this.pos.y - camY) * zoom;
-      const grad = ctx.createRadialGradient(catScreenX, catScreenY, 60 * zoom, catScreenX, catScreenY, 360 * zoom);
-      grad.addColorStop(0, "rgba(0,0,0,0)");
-      grad.addColorStop(1, this.level.ambient === "night" ? "rgba(5,8,20,0.85)" : "rgba(0,0,0,0.78)");
+    // Ambient light pass (screen space). The camera keeps the cat near the centre,
+    // so a canvas-centred vignette reads the same as a cat-centred one and can be
+    // cached instead of rebuilt every frame.
+    const grad = this.getVignette(ctx, cw, ch);
+    if (grad) {
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, cw, ch);
     }
+
+    // A soft light travelling with the cat, drawn after the vignette so it lifts
+    // the scene back up around the player and gives the flat art some depth.
+    const light = this.getLightSprite();
+    if (light) {
+      const catSX = (this.pos.x - camX) * zoom;
+      const catSY = (this.pos.y - camY) * zoom;
+      // Breathe gently, and flare while sprinting.
+      const pulse = 1 + Math.sin(performance.now() / 900) * 0.03 + this.runBlend * 0.12;
+      const r = 300 * zoom * pulse;
+      ctx.save();
+      ctx.globalCompositeOperation = "soft-light";
+      ctx.globalAlpha = this.level.ambient === "day" ? 0.75 : 1;
+      ctx.drawImage(light, catSX - r, catSY - r, r * 2, r * 2);
+      ctx.restore();
+    }
+  }
+
+  /** Reused actor slots — the depth pass runs every frame and must not allocate. */
+  private actors: Array<{ y: number; obj: LevelObject | null }> = [];
+  private actorCount = 0;
+
+  /**
+   * Direction the level's key light comes from; drives shadow offset.
+   * Fixed per level, so it is resolved once instead of per shadow per frame.
+   */
+  private readonly lightDir: Vec2;
+
+  /**
+   * Gather everything that should be depth-sorted this frame: visible
+   * interactables plus the cat. Sorted by ground line (bottom edge), using an
+   * insertion sort because the list is tiny and it sorts a partial array
+   * in place without allocating.
+   */
+  private collectActors() {
+    this.actorCount = 0;
+    const push = (y: number, obj: LevelObject | null) => {
+      const slot = this.actors[this.actorCount] ?? (this.actors[this.actorCount] = { y: 0, obj: null });
+      slot.y = y;
+      slot.obj = obj;
+      this.actorCount++;
+    };
+
+    const pad = 120;
+    for (const o of this.level.objects) {
+      if (o.kind !== "item" && o.kind !== "npc" && o.kind !== "goal") continue;
+      if (o.kind === "item" && this.collectedThisRun.has(o.id)) continue;
+      // Cull anything well outside the view before it costs any draw calls.
+      if (
+        o.rect.x + o.rect.w < this.view.x - pad || o.rect.x > this.view.x + this.view.w + pad ||
+        o.rect.y + o.rect.h < this.view.y - pad || o.rect.y > this.view.y + this.view.h + pad
+      ) continue;
+      push(o.rect.y + o.rect.h, o);
+    }
+    push(this.pos.y + CAT_SIZE / 2, null);
+
+    for (let i = 1; i < this.actorCount; i++) {
+      const cur = this.actors[i];
+      const y = cur.y;
+      const obj = cur.obj;
+      let j = i - 1;
+      while (j >= 0 && this.actors[j].y > y) {
+        this.actors[j + 1].y = this.actors[j].y;
+        this.actors[j + 1].obj = this.actors[j].obj;
+        j--;
+      }
+      this.actors[j + 1].y = y;
+      this.actors[j + 1].obj = obj;
+    }
+  }
+
+  /** Soft contact shadow, offset away from the level's key light. */
+  private drawShadow(ctx: CanvasRenderingContext2D, radius: number, scale: number, baseY: number) {
+    const dir = this.lightDir;
+    ctx.save();
+    ctx.globalAlpha = 0.34;
+    ctx.fillStyle = "#000";
+    ctx.beginPath();
+    ctx.ellipse(-dir.x * radius * 0.45, baseY + dir.y * 2, radius * scale, 7 * scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  private drawObject(ctx: CanvasRenderingContext2D, o: LevelObject, zoom: number) {
+    const cx = o.rect.x + o.rect.w / 2;
+    const cy = o.rect.y + o.rect.h / 2;
+    const span = Math.max(o.rect.w, o.rect.h);
+    const now = performance.now();
+    const pulse = 0.55 + 0.45 * Math.sin(now / 320);
+    // Collectibles hover; fixed things (doors, chests) stay put.
+    const hover = o.kind === "item" ? Math.sin(now / 520 + cx) * 3 : 0;
+    const tint = o.kind === "item" ? "#ffd76b" : o.kind === "npc" ? "#9be38a" : "#7ec3ff";
+
+    // drawShadow works in the current transform, so anchor it on the object first.
+    ctx.save();
+    ctx.translate(cx, cy);
+    this.drawShadow(ctx, span * 0.3, 1, o.rect.h / 2 + 2);
+    ctx.restore();
+
+    // Additive bloom reads as the object emitting light rather than sitting on a disc.
+    const light = this.getLightSprite();
+    if (light) {
+      const r = span * (0.85 + 0.12 * pulse);
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      ctx.globalAlpha = 0.22 * pulse;
+      ctx.drawImage(light, cx - r, cy - r + hover, r * 2, r * 2);
+      ctx.restore();
+    }
+
+    ctx.save();
+    ctx.globalAlpha = 0.22 * pulse;
+    ctx.fillStyle = tint;
+    ctx.beginPath();
+    ctx.arc(cx, cy + 4, span * 0.6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    const icon = o.icon ?? (o.itemId ? ITEMS[o.itemId]?.emoji : undefined);
+    if (icon) {
+      ctx.save();
+      ctx.font = `${Math.round(span * 0.78)}px "Segoe UI Emoji", "Apple Color Emoji", system-ui, sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(icon, cx, cy + hover);
+      ctx.restore();
+    }
+
+    if (this.lastNearbyId === o.id) {
+      ctx.save();
+      ctx.globalAlpha = 0.9;
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 2 / zoom;
+      ctx.beginPath();
+      ctx.arc(cx, cy + 4, span * 0.8, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  private vignette: CanvasGradient | null = null;
+  private vignetteKey = "";
+  private lightSprite: HTMLCanvasElement | null = null;
+
+  /**
+   * Radial falloff baked into a sprite once, so the per-frame cost of the light
+   * that follows the cat is a single drawImage instead of building a gradient.
+   */
+  private getLightSprite(): HTMLCanvasElement | null {
+    if (this.lightSprite) return this.lightSprite;
+    const S = 256;
+    const c = document.createElement("canvas");
+    c.width = S;
+    c.height = S;
+    const cctx = c.getContext("2d");
+    if (!cctx) return null;
+    const g = cctx.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S / 2);
+    const warm = this.level.ambient === "night" ? "180,205,255" : "255,214,150";
+    g.addColorStop(0, `rgba(${warm},0.85)`);
+    g.addColorStop(0.45, `rgba(${warm},0.30)`);
+    g.addColorStop(1, `rgba(${warm},0)`);
+    cctx.fillStyle = g;
+    cctx.fillRect(0, 0, S, S);
+    this.lightSprite = c;
+    return c;
+  }
+
+  private getVignette(ctx: CanvasRenderingContext2D, cw: number, ch: number): CanvasGradient | null {
+    const ambient = this.level.ambient ?? "day";
+    const key = `${ambient}:${Math.round(cw)}x${Math.round(ch)}`;
+    if (this.vignetteKey === key) return this.vignette;
+
+    const cx = cw / 2;
+    const cy = ch / 2;
+    const inner = Math.min(cw, ch) * 0.22;
+    const outer = Math.hypot(cw, ch) * 0.62;
+    const g = ctx.createRadialGradient(cx, cy, inner, cx, cy, outer);
+    g.addColorStop(0, "rgba(0,0,0,0)");
+    if (ambient === "night") {
+      g.addColorStop(0.55, "rgba(8,12,32,0.30)");
+      g.addColorStop(1, "rgba(4,7,20,0.88)");
+    } else if (ambient === "dim") {
+      g.addColorStop(0.55, "rgba(10,6,2,0.26)");
+      g.addColorStop(1, "rgba(0,0,0,0.80)");
+    } else {
+      // Daylight still gets a gentle warm falloff so the frame has some shape.
+      g.addColorStop(0.6, "rgba(40,20,0,0.05)");
+      g.addColorStop(1, "rgba(30,14,0,0.34)");
+    }
+    this.vignette = g;
+    this.vignetteKey = key;
+    return g;
   }
 
 
 
-  /** Draw the cat sprite using the 12-directional spritesheet. */
+  /** Bake the oversized source sprite down to roughly its on-screen size, once. */
+  private getCatCache(drawW: number, drawH: number): HTMLCanvasElement | null {
+    if (this.catCache) return this.catCache;
+    const img = this.catImg;
+    if (!img.complete || img.naturalWidth === 0) return null;
+    const ss = GameEngine.CAT_CACHE_SS;
+    const c = document.createElement("canvas");
+    c.width = Math.ceil(drawW * ss);
+    c.height = Math.ceil(drawH * ss);
+    const cctx = c.getContext("2d");
+    if (!cctx) return null;
+    // One high-quality resample here replaces one per frame.
+    cctx.imageSmoothingEnabled = true;
+    cctx.imageSmoothingQuality = "high";
+    cctx.drawImage(img, 0, 0, c.width, c.height);
+    this.catCache = c;
+    return c;
+  }
+
+  /** Draw the cat sprite. Source image faces UP, centered horizontally with tail extending downward. */
   private drawCat(ctx: CanvasRenderingContext2D) {
     const img = this.catImg;
     if (!img.complete || img.naturalWidth === 0) return;
@@ -801,70 +692,39 @@ export class GameEngine {
     const wb = this.walkBlend;
     const rb = this.runBlend;
 
-    const cellW = img.naturalWidth / 3;
-    const cellH = img.naturalHeight / 4;
+    // Sprite dimensions: drawn taller than wide because of the long tail.
+    const drawW = S * 1.05;
+    const drawH = S * 1.85;
 
-    // Preserve aspect ratio
-    const drawW = S * 1.45;
-    const drawH = drawW * (cellH / cellW);
+    // Center the cat's body (not the bounding box) on (0,0).
+    // The sprite's body center is roughly 35% from the top (head + body, tail trails behind).
+    const bodyOffsetY = drawH * 0.15; // shift down so head leads, tail trails
 
-    // Map renderAngle (0 is UP, PI/2 is RIGHT, PI is DOWN, 3*PI/2 is LEFT) to 12 sectors
-    let deg = (this.renderAngle * 180 / Math.PI) % 360;
-    if (deg < 0) deg += 360;
+    // Subtle gait-driven squash & stretch
+    const gaitSway = Math.sin(phase) * (wb * 0.025 + rb * 0.045);
+    // Bank into corners — turnLean is signed; sprite faces up, so positive lean tilts right.
+    const banking = this.turnLean * (0.22 + 0.15 * rb);
+    // Idle micro-motion: occasional tail flick after standing still for a while.
+    const idleFlick = wb < 0.1
+      ? Math.sin(this.idleTimer * 1.4) * Math.max(0, Math.sin(this.idleTimer * 0.35)) * 0.05
+      : 0;
+    const sway = gaitSway + banking + idleFlick;
 
-    const sector = Math.floor((deg + 15) / 30) % 12;
+    // Running stretches the body slightly along its motion axis (Y in sprite-local space).
+    const stretchY = 1 + Math.abs(Math.sin(phase)) * rb * 0.06;
+    const squashX = 1 - Math.abs(Math.sin(phase)) * (wb * 0.02 + rb * 0.05);
 
-    const SECTOR_TO_SPRITE = [
-      { row: 3, col: 1 }, // 0: Up-Center (0°)
-      { row: 3, col: 2 }, // 1: Up-Right (30°)
-      { row: 2, col: 0 }, // 2: Right-Up (60°)
-      { row: 2, col: 1 }, // 3: Right-Center (90°)
-      { row: 2, col: 2 }, // 4: Right-Down (120°)
-      { row: 0, col: 2 }, // 5: Down-Right (150°)
-      { row: 0, col: 1 }, // 6: Down-Center (180°)
-      { row: 0, col: 0 }, // 7: Down-Left (210°)
-      { row: 1, col: 0 }, // 8: Left-Down (240°)
-      { row: 1, col: 1 }, // 9: Left-Center (270°)
-      { row: 1, col: 2 }, // 10: Left-Up (300°)
-      { row: 3, col: 0 }, // 11: Up-Left (330°)
-    ];
-
-    const sprite = SECTOR_TO_SPRITE[sector] ?? SECTOR_TO_SPRITE[0];
-    const sx = sprite.col * cellW;
-    const sy = sprite.row * cellH;
-
-    // Procedural shoulder/hip walk sway (wobble) + corner lean
-    const gaitSway = Math.sin(phase) * (wb * 0.05 + rb * 0.08);
-    const banking = this.turnLean * 0.12;
-    const sway = gaitSway + banking;
-
-    // Running stretches the body slightly along its motion axis (procedural squash & stretch)
-    const stretchY = 1 + Math.abs(Math.sin(phase)) * rb * 0.045;
-    const squashX = 1 - Math.abs(Math.sin(phase)) * (wb * 0.015 + rb * 0.035);
+    const sprite = this.getCatCache(drawW, drawH);
+    if (!sprite) return;
 
     ctx.save();
+    // Tail-flick sway + turn banking tilt the whole sprite naturally.
     ctx.rotate(sway);
     ctx.scale(squashX, stretchY);
+    // Cheap blit: the expensive resample already happened when baking the cache.
     ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = "high";
-
-    // Premium outer glow and drop-shadow to make the cat pop
-    if (this.level.ambient === "night") {
-      ctx.shadowColor = "rgba(255, 218, 122, 0.45)"; // Amber starlight glow
-      ctx.shadowBlur = 14;
-    } else if (this.level.ambient === "dim") {
-      ctx.shadowColor = "rgba(255, 255, 255, 0.22)"; // Silver moonlight glow
-      ctx.shadowBlur = 9;
-    } else {
-      ctx.shadowColor = "rgba(0, 0, 0, 0.2)"; // Soft daylight depth shadow
-      ctx.shadowBlur = 5;
-    }
-
-    ctx.drawImage(
-      img,
-      sx, sy, cellW, cellH, // source rect
-      -drawW / 2, -drawH / 2, drawW, drawH // dest rect
-    );
+    ctx.imageSmoothingQuality = "low";
+    ctx.drawImage(sprite, -drawW / 2, -drawH / 2 + bodyOffsetY, drawW, drawH);
     ctx.restore();
   }
 }

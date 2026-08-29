@@ -20,6 +20,8 @@ export interface LevelObject {
   itemId?: ItemId;
   npcId?: string;
   message?: string;
+  /** Glyph drawn in-world. Items fall back to their ITEMS emoji. */
+  icon?: string;
   /** how many of which items must be collected to complete this goal */
   requires?: Partial<Record<ItemId, number>>;
   collected?: boolean;
@@ -43,6 +45,8 @@ export interface LevelDef {
   height: number;
   spawn: Vec2;
   ambient?: "day" | "dim" | "night";
+  /** Ambient particle style drifting through this level. */
+  ambientFx?: "motes" | "petals" | "dust" | "stars";
   /** dialog spoken by Edek's narrator at start */
   intro: string;
   /** final objective text */

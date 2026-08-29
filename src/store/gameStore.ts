@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { ItemId } from "@/game/types";
 import { LEVELS } from "@/game/levels";
+import { inventoryFromCollected } from "@/game/inventory";
 
 export type LevelProgress = {
   completed: boolean;
@@ -21,7 +22,20 @@ export interface ControlSettings {
   invertY: boolean;
   vibration: boolean;
   showHints: boolean;
+  /** Motion-sensitivity: show rotating goal arrows + distance badges for reach quests. */
+  goalIndicators: boolean;
+  /** Calibration multiplier for the "tuż obok" proximity thresholds (0.6–1.8). */
+  goalProximityScale: number;
+  /** Colour-blind mode: encode distance tiers with shapes/patterns/glyphs, not just hue. */
+  colorBlindMode: boolean;
+  /** Reduced motion: no pulsing glows, no eased transitions on goal indicators. */
+  reducedMotion: boolean;
+  /** Auto-collapse the HUD distance legend after N seconds (0 = never). */
+  legendAutoCollapseSec: number;
+  /** Persisted manual state of the HUD distance legend (expanded/collapsed). */
+  legendExpanded: boolean;
 }
+
 
 export interface DifficultyConfig {
   label: string;
@@ -38,7 +52,7 @@ export const DIFFICULTIES: Record<Difficulty, DifficultyConfig> = {
   hard:   { label: "Trudny", startEnergy: 80,  sprintDrainMul: 1.6,  restRecoverMul: 0.7, dangerDamage: 18, minSprintEnergy: 16 },
 };
 
-const DEFAULT_CONTROLS: ControlSettings = {
+export const DEFAULT_CONTROLS: ControlSettings = {
   sensitivity: 1,
   sprintMode: "hold",
   joystickSide: "left",
@@ -46,12 +60,30 @@ const DEFAULT_CONTROLS: ControlSettings = {
   invertY: false,
   vibration: true,
   showHints: true,
+  goalIndicators: true,
+  goalProximityScale: 1,
+  colorBlindMode: false,
+  reducedMotion: false,
+  legendAutoCollapseSec: 6.5,
+  legendExpanded: true,
+};
+
+/** Upper bound of the energy bar; the HUD renders energy as a percentage of this. */
+export const MAX_ENERGY = 100;
+
+const INITIAL_PROGRESS = {
+  levelProgress: {} as Record<string, LevelProgress>,
+  unlockedLevels: ["1"],
+  talkedNpcs: {} as Record<string, string[]>,
+  inventory: {} as Partial<Record<ItemId, number>>,
+  save: null as SaveSlot | null,
 };
 
 export interface SaveSlot {
   levelId: string;
   pos: { x: number; y: number };
   energy: number;
+  difficulty: Difficulty;
   savedAt: number;
 }
 
@@ -98,12 +130,8 @@ export const useGameStore = create<GameState>()(
       muted: false,
       controls: { ...DEFAULT_CONTROLS },
       difficulty: "medium",
-      levelProgress: {},
-      unlockedLevels: ["1"],
-      talkedNpcs: {},
-      inventory: {},
-      energy: 100,
-      save: null,
+      ...INITIAL_PROGRESS,
+      energy: DIFFICULTIES.medium.startEnergy,
 
       setVolume: (v) => set({ volume: Math.max(0, Math.min(1, v)) }),
       setMuted: (m) => set({ muted: m }),
@@ -115,19 +143,7 @@ export const useGameStore = create<GameState>()(
         const state = get();
         const existing = state.levelProgress[id] ?? { completed: false, itemsCollected: [] };
         const level = LEVELS.find((l) => l.id === id);
-        const inventory: Partial<Record<ItemId, number>> = {};
-        if (level) {
-          for (const objId of existing.itemsCollected) {
-            if (objId.endsWith("-gift")) {
-              inventory.yarn = (inventory.yarn ?? 0) + 1;
-              continue;
-            }
-            const obj = level.objects.find((o) => o.id === objId);
-            if (obj?.kind === "item" && obj.itemId) {
-              inventory[obj.itemId] = (inventory[obj.itemId] ?? 0) + 1;
-            }
-          }
-        }
+        const inventory = level ? inventoryFromCollected(level, existing.itemsCollected) : {};
         const prevTalked = state.talkedNpcs[id] ?? [];
         const startEnergy = DIFFICULTIES[state.difficulty].startEnergy;
         const resumeEnergy = opts?.resume && state.save?.levelId === id ? state.save.energy : startEnergy;
@@ -161,7 +177,7 @@ export const useGameStore = create<GameState>()(
       },
 
       drainEnergy: (amount) => set({ energy: Math.max(0, get().energy - amount) }),
-      restoreEnergy: (amount) => set({ energy: Math.min(100, get().energy + amount) }),
+      restoreEnergy: (amount) => set({ energy: Math.min(MAX_ENERGY, get().energy + amount) }),
 
       completeLevel: (id, nextId) => {
         const state = get();
@@ -182,16 +198,27 @@ export const useGameStore = create<GameState>()(
       clearSave: () => set({ save: null }),
 
       resetProgress: () => set({
-        levelProgress: {},
-        unlockedLevels: ["1"],
-        talkedNpcs: {},
-        inventory: {},
-        energy: 100,
-        save: null,
+        ...INITIAL_PROGRESS,
+        energy: DIFFICULTIES[get().difficulty].startEnergy,
       }),
     }),
     {
       name: "edek-game-v1",
+      // `energy` changes several times a second during play, and every persisted
+      // write is a synchronous JSON.stringify + localStorage.setItem of the whole
+      // store. Neither field needs to survive a reload: startLevel() rebuilds the
+      // inventory from itemsCollected, and energy comes from the save slot or the
+      // difficulty's startEnergy.
+      partialize: (s) => ({
+        volume: s.volume,
+        muted: s.muted,
+        controls: s.controls,
+        difficulty: s.difficulty,
+        levelProgress: s.levelProgress,
+        unlockedLevels: s.unlockedLevels,
+        talkedNpcs: s.talkedNpcs,
+        save: s.save,
+      }),
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<GameState>;
         return {

@@ -1,16 +1,17 @@
-import { createFileRoute, useParams, useSearch } from "@tanstack/react-router";
+import { createFileRoute, notFound, useParams } from "@tanstack/react-router";
 import { GameCanvas } from "@/components/game/GameCanvas";
 import { getLevel } from "@/game/levels";
-import { z } from "zod";
-
-const searchSchema = z.object({
-  mode: z.enum(["play", "explore"]).optional().catch("play"),
-});
 
 export const Route = createFileRoute("/poziom/$id")({
-  validateSearch: (search) => searchSchema.parse(search),
+  // Validate only — returning the level would hand the component a fresh object
+  // per render (loader data is re-serialised), and GameCanvas's trackers key
+  // their animation loops off the level's identity.
+  loader: ({ params }) => {
+    if (!getLevel(params.id)) throw notFound();
+  },
   head: ({ params }) => {
     const l = getLevel(params.id);
+    if (!l) return { meta: [{ title: "Nie znaleziono poziomu — Przygody Edka" }] };
     return {
       meta: [
         { title: `${l.title} — Przygody Edka` },
@@ -23,7 +24,8 @@ export const Route = createFileRoute("/poziom/$id")({
 
 function LevelPage() {
   const { id } = useParams({ from: "/poziom/$id" });
-  const { mode } = useSearch({ from: "/poziom/$id" });
+  // Stable reference straight out of the LEVELS module.
   const level = getLevel(id);
-  return <GameCanvas key={level.id} level={level} mode={mode ?? "play"} />;
+  if (!level) throw notFound();
+  return <GameCanvas key={level.id} level={level} />;
 }

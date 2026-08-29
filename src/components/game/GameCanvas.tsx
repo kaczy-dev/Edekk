@@ -1,31 +1,31 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { GameEngine } from "@/game/engine";
-import type { LevelDef, LevelObject } from "@/game/types";
+import type { ItemId, LevelDef, LevelObject } from "@/game/types";
 import { LEVELS } from "@/game/levels";
 import { useGameStore, DIFFICULTIES } from "@/store/gameStore";
 import { ITEMS } from "@/game/items";
+import { NPC_GIFTS, giftObjId } from "@/game/inventory";
 import { HUD } from "./HUD";
 import { DialogBox } from "./DialogBox";
 import { PauseMenu } from "./PauseMenu";
 import { VirtualJoystick } from "./VirtualJoystick";
 import { DPad } from "./DPad";
-import edekSprite from "@/assets/edek-sprite.png";
+import { GoalArrows } from "./GoalArrows";
+import edekSprite from "@/assets/edek-topdown.png";
 import { AnimatePresence, motion } from "framer-motion";
 
 interface Props {
   level: LevelDef;
-  mode?: "play" | "explore";
 }
 
-export function GameCanvas({ level, mode = "play" }: Props) {
+export function GameCanvas({ level }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<GameEngine | null>(null);
   const navigate = useNavigate();
 
   const [dialog, setDialog] = useState<string | null>(level.intro);
-  const [dialogAction, setDialogAction] = useState<{ label: string; onClick: () => void } | null>(null);
   const [paused, setPaused] = useState(false);
   const [nearby, setNearby] = useState<LevelObject | null>(null);
   const [sprinting, setSprinting] = useState(false);
@@ -53,9 +53,24 @@ export function GameCanvas({ level, mode = "play" }: Props) {
 
   useEffect(() => {
     const saved = useGameStore.getState().save;
-    startLevel(level.id, { resume: saved?.levelId === level.id });
+    const resuming = saved?.levelId === level.id;
+    if (resuming && saved && saved.difficulty !== useGameStore.getState().difficulty) {
+      // Restore difficulty from save WITHOUT invalidating the save slot.
+      useGameStore.setState({ difficulty: saved.difficulty });
+    }
+    startLevel(level.id, { resume: resuming });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [level.id]);
+
+  // The level is a fixed full-viewport surface; stop the page itself scrolling or
+  // rubber-banding under trackpad and touch gestures while playing.
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
 
   useEffect(() => {
     if (engineRef.current) engineRef.current.paused = paused || !!dialog;
@@ -95,7 +110,8 @@ export function GameCanvas({ level, mode = "play" }: Props) {
       canvas.style.height = h + "px";
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = "high";
+      // Per-frame default; the engine bumps quality only where it bakes caches.
+      ctx.imageSmoothingQuality = "low";
     };
     resize();
     window.addEventListener("resize", resize);
@@ -117,51 +133,26 @@ export function GameCanvas({ level, mode = "play" }: Props) {
       onTalk: (obj: LevelObject) => {
         setDialog(obj.message ?? "...");
         markTalked(level.id, obj.id);
-        if (obj.npcId === "squirrel" && !useGameStore.getState().inventory.yarn) {
-          pickUp("yarn", obj.id + "-gift", level.id);
+        const gift = obj.npcId ? NPC_GIFTS[obj.npcId] : undefined;
+        if (gift && !useGameStore.getState().inventory[gift]) {
+          pickUp(gift, giftObjId(obj.id), level.id);
         }
       },
       onGoal: (obj: LevelObject) => {
-        const isExplore = mode === "explore";
-        const idx = LEVELS.findIndex((l) => l.id === level.id);
-        const next = LEVELS[idx + 1];
-
-        if (isExplore) {
-          setDialog("Przechodzisz dalej jako obserwator... 👁️");
-          setTimeout(() => {
-            if (next) navigate({ to: "/poziom/$id", params: { id: next.id }, search: { mode: "explore" } });
-            else navigate({ to: "/koniec" });
-          }, 1500);
-          return;
-        }
-
         const inv = useGameStore.getState().inventory;
         if (obj.requires) {
-          for (const [k, n] of Object.entries(obj.requires)) {
-            if ((inv[k as keyof typeof inv] ?? 0) < (n ?? 0)) {
-              const missing = Object.entries(obj.requires)
-                .map(([id, req]) => {
-                  const have = inv[id as keyof typeof inv] ?? 0;
-                  return `${ITEMS[id as keyof typeof ITEMS].emoji} ${have}/${req}`;
-                })
-                .join("   ");
-              setDialog(`Jeszcze nie wszystko. Potrzeba:  ${missing}`);
-
-              if (next) {
-                setDialogAction({
-                  label: "Przejdź dalej (zwiedzanie) 👁️",
-                  onClick: () => {
-                    setDialog(null);
-                    setDialogAction(null);
-                    navigate({ to: "/poziom/$id", params: { id: next.id }, search: { mode: "explore" } });
-                  }
-                });
-              }
-              return;
-            }
+          const requirements = Object.entries(obj.requires) as [ItemId, number][];
+          if (requirements.some(([id, need]) => (inv[id] ?? 0) < need)) {
+            const missing = requirements
+              .map(([id, need]) => `${ITEMS[id]?.emoji ?? "❓"} ${inv[id] ?? 0}/${need}`)
+              .join("   ");
+            setDialog(`Jeszcze nie wszystko. Potrzeba:  ${missing}`);
+            return;
           }
         }
         setDialog(obj.message ?? "Cel osiągnięty!");
+        const idx = LEVELS.findIndex((l) => l.id === level.id);
+        const next = LEVELS[idx + 1];
         completeLevel(level.id, next?.id);
         clearSave();
         setTimeout(() => {
@@ -170,9 +161,7 @@ export function GameCanvas({ level, mode = "play" }: Props) {
         }, 1800);
       },
       onDanger: (obj: LevelObject) => {
-        const dmg = useGameStore.getState().difficulty === "easy" ? 5
-          : useGameStore.getState().difficulty === "hard" ? 18 : 10;
-        drain(dmg);
+        drain(DIFFICULTIES[useGameStore.getState().difficulty].dangerDamage);
         if (controls.vibration && "vibrate" in navigator) navigator.vibrate?.(80);
         setDialog(obj.message ?? "Uważaj!");
       },
@@ -189,9 +178,13 @@ export function GameCanvas({ level, mode = "play" }: Props) {
     };
 
     let started = false;
+    // Set on cleanup: without it a late image `load` would start an engine for an
+    // already-unmounted effect, orphaning a RAF loop and an autosave interval that
+    // nothing can cancel. Repeated mounts (HMR, level changes) stack them up.
+    let cancelled = false;
     let saveTimer: ReturnType<typeof setInterval> | null = null;
     const tryStart = () => {
-      if (started || !catImg.complete || !bgImg.complete) return;
+      if (cancelled || started || !catImg.complete || !bgImg.complete) return;
       started = true;
       const engine = new GameEngine(level, catImg, bgImg, events);
       engine.input.setSettings(useGameStore.getState().controls);
@@ -217,6 +210,7 @@ export function GameCanvas({ level, mode = "play" }: Props) {
           levelId: level.id,
           pos: { x: Math.round(e.pos.x), y: Math.round(e.pos.y) },
           energy: useGameStore.getState().energy,
+          difficulty: useGameStore.getState().difficulty,
           savedAt: Date.now(),
         });
       }, 2000);
@@ -232,6 +226,7 @@ export function GameCanvas({ level, mode = "play" }: Props) {
         levelId: level.id,
         pos: { x: Math.round(e.pos.x), y: Math.round(e.pos.y) },
         energy: useGameStore.getState().energy,
+        difficulty: useGameStore.getState().difficulty,
         savedAt: Date.now(),
       });
     };
@@ -239,6 +234,9 @@ export function GameCanvas({ level, mode = "play" }: Props) {
     document.addEventListener("visibilitychange", onHide);
 
     return () => {
+      cancelled = true;
+      catImg.onload = null;
+      bgImg.onload = null;
       window.removeEventListener("resize", resize);
       window.removeEventListener("pagehide", onHide);
       document.removeEventListener("visibilitychange", onHide);
@@ -249,6 +247,16 @@ export function GameCanvas({ level, mode = "play" }: Props) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [level.id]);
+
+  // Stable identities: the HUD and arrow trackers key their animation loops off these.
+  const getCatPos = useCallback(() => engineRef.current?.pos ?? null, []);
+  const getCamera = useCallback(
+    () =>
+      engineRef.current
+        ? { x: engineRef.current.cam.x, y: engineRef.current.cam.y, zoom: engineRef.current.zoom }
+        : null,
+    []
+  );
 
   const restart = () => {
     setPaused(false);
@@ -272,7 +280,18 @@ export function GameCanvas({ level, mode = "play" }: Props) {
   return (
     <div ref={wrapRef} className="relative h-[100dvh] w-full overflow-hidden bg-black select-none">
       <canvas ref={canvasRef} className="block h-full w-full" />
-      <HUD level={level} onPause={() => setPaused(true)} sprinting={sprinting} mode={mode} />
+      <HUD
+        level={level}
+        onPause={() => setPaused(true)}
+        sprinting={sprinting}
+        getCatPos={getCatPos}
+      />
+      <GoalArrows
+        level={level}
+        getCatPos={getCatPos}
+        getCamera={getCamera}
+        containerRef={wrapRef}
+      />
 
       <AnimatePresence>
         {nearbyLabel && !dialog && !paused && (
@@ -289,7 +308,7 @@ export function GameCanvas({ level, mode = "play" }: Props) {
         )}
       </AnimatePresence>
 
-      <DialogBox text={dialog} onClose={() => { setDialog(null); setDialogAction(null); }} action={dialogAction} />
+      <DialogBox text={dialog} onClose={() => setDialog(null)} />
 
       <AnimatePresence>
         {showHint && !paused && (

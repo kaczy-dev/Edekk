@@ -1,4 +1,4 @@
-import type { ControlSettings } from "@/store/gameStore";
+import { DEFAULT_CONTROLS, type ControlSettings } from "@/store/gameStore";
 
 export class InputState {
   keys = new Set<string>();
@@ -7,15 +7,7 @@ export class InputState {
   interactPressed = false;
   /** active when sprintMode === "toggle" */
   sprintToggled = false;
-  settings: ControlSettings = {
-    sensitivity: 1,
-    sprintMode: "hold",
-    joystickSide: "left",
-    touchControl: "stick",
-    invertY: false,
-    vibration: true,
-    showHints: true,
-  };
+  settings: ControlSettings = { ...DEFAULT_CONTROLS };
 
   setSettings(s: ControlSettings) {
     // reset toggle when switching mode

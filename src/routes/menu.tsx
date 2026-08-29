@@ -3,6 +3,8 @@ import { motion } from "framer-motion";
 import { LEVELS } from "@/game/levels";
 import { useGameStore } from "@/store/gameStore";
 import { computeQuests, questCompletion } from "@/game/questUtils";
+import { inventoryFromCollected } from "@/game/inventory";
+import { Tilt3D } from "@/components/ui/tilt-3d";
 
 
 export const Route = createFileRoute("/menu")({
@@ -44,22 +46,13 @@ function MenuPage() {
             const isUnlocked = unlocked.includes(l.id);
             const lp = progress[l.id];
             const done = lp?.completed ?? false;
-            const inventoryForCounts: Record<string, number> = {};
             // derive saved counts from itemsCollected so cards reflect last save
-            for (const objId of lp?.itemsCollected ?? []) {
-              const obj = l.objects.find((o) => o.id === objId);
-              if (obj?.kind === "item" && obj.itemId) {
-                inventoryForCounts[obj.itemId] = (inventoryForCounts[obj.itemId] ?? 0) + 1;
-              }
-            }
-            // squirrel yarn gift is tracked as "<objId>-gift"
-            if ((lp?.itemsCollected ?? []).some((id) => id.endsWith("-gift"))) {
-              inventoryForCounts.yarn = (inventoryForCounts.yarn ?? 0) + 1;
-            }
+            const inventoryForCounts = inventoryFromCollected(l, lp?.itemsCollected ?? []);
             const statuses = computeQuests(l, {
               inventory: inventoryForCounts,
               talked: talked[l.id] ?? [],
               levelCompleted: done,
+              collected: lp?.itemsCollected ?? [],
             });
             const counts = questCompletion(statuses);
 
@@ -71,10 +64,11 @@ function MenuPage() {
                 transition={{ delay: i * 0.08 }}
               >
                 {isUnlocked ? (
+                  <Tilt3D className="h-full" intensity={7} lift={18}>
                   <Link
                     to="/poziom/$id"
                     params={{ id: l.id }}
-                    className="group relative block overflow-hidden rounded-3xl border border-border bg-card transition hover:border-honey/50"
+                    className="group relative block overflow-hidden rounded-3xl border border-border bg-card shadow-lg shadow-black/30 transition duration-300 hover:border-honey/50 hover:shadow-2xl hover:shadow-honey/10"
                   >
                     <div className="relative aspect-[16/9] overflow-hidden">
                       <img
@@ -124,6 +118,7 @@ function MenuPage() {
                       </ul>
                     </div>
                   </Link>
+                  </Tilt3D>
                 ) : (
                   <div className="block overflow-hidden rounded-3xl border border-dashed border-border bg-card/50">
                     <div className="relative aspect-[16/9] overflow-hidden">
@@ -145,14 +140,6 @@ function MenuPage() {
                       <div className="mt-3 rounded-xl border border-honey/20 bg-honey/5 px-3 py-2 text-[13px] text-honey/90">
                         <span className="mr-1">🔑</span>{l.unlockHint}
                       </div>
-                      <Link
-                        to="/poziom/$id"
-                        params={{ id: l.id }}
-                        search={{ mode: "explore" }}
-                        className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-2xl border border-honey/40 bg-honey/10 py-2.5 text-xs font-semibold text-honey hover:bg-honey/20 transition active:scale-95"
-                      >
-                        Zwiedzaj planszę 👁️
-                      </Link>
                     </div>
                   </div>
                 )}

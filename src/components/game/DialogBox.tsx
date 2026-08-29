@@ -4,13 +4,9 @@ import { useEffect } from "react";
 interface Props {
   text: string | null;
   onClose: () => void;
-  action?: {
-    label: string;
-    onClick: () => void;
-  } | null;
 }
 
-export function DialogBox({ text, onClose, action }: Props) {
+export function DialogBox({ text, onClose }: Props) {
   useEffect(() => {
     if (!text) return;
     const onKey = (e: KeyboardEvent) => {
@@ -44,27 +40,14 @@ export function DialogBox({ text, onClose, action }: Props) {
               <p className="mt-1 font-display text-lg leading-snug text-foreground">{text}</p>
             </div>
           </div>
-          <div className="mt-3 flex items-center justify-between gap-3">
+          <div className="mt-3 flex items-center justify-between">
             <span className="text-[10px] uppercase tracking-widest text-white/40">Spacja / Enter</span>
-            <div className="flex items-center gap-2">
-              {action && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    action.onClick();
-                  }}
-                  className="rounded-full border border-honey/55 bg-honey/15 px-4 py-1.5 text-sm font-semibold text-honey transition hover:bg-honey/25 active:scale-95"
-                >
-                  {action.label}
-                </button>
-              )}
-              <button
-                onClick={(e) => { e.stopPropagation(); onClose(); }}
-                className="rounded-full bg-primary px-4 py-1.5 text-sm font-semibold text-primary-foreground transition hover:opacity-90 active:scale-95"
-              >
-                Dalej →
-              </button>
-            </div>
+            <button
+              onClick={(e) => { e.stopPropagation(); onClose(); }}
+              className="rounded-full bg-primary px-4 py-1.5 text-sm font-semibold text-primary-foreground transition hover:opacity-90 active:scale-95"
+            >
+              Dalej →
+            </button>
           </div>
         </motion.div>
       )}

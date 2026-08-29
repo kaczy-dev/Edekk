@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import edekPortrait from "@/assets/edek-portrait.jpg";
 import { useGameStore } from "@/store/gameStore";
 import { getLevel } from "@/game/levels";
+import { ParallaxHero, ParallaxLayer } from "@/components/game/ParallaxHero";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -21,19 +22,29 @@ function TitleScreen() {
   const resumeLevel = save ? getLevel(save.levelId) : null;
 
   return (
-    <main className="relative min-h-[100dvh] overflow-hidden">
-      <div className="absolute inset-0 -z-10">
+    <ParallaxHero className="relative min-h-[100dvh] overflow-hidden">
+      {/* Deepest plane: the portrait drifts least, so it reads as far away. */}
+      <ParallaxLayer depth={0.35} className="absolute inset-0 -z-10">
         <img
           src={edekPortrait}
           alt="Portret Edka, dymnego srebrnego kota Maine coon"
-          className="h-full w-full object-cover opacity-50"
+          className="h-[112%] w-[112%] -translate-x-[5%] -translate-y-[5%] object-cover opacity-50"
           width={1280}
           height={1280}
         />
         <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-background/70 to-background" />
-      </div>
+      </ParallaxLayer>
 
-      <section className="mx-auto flex min-h-[100dvh] max-w-5xl flex-col items-center justify-center px-6 py-16 text-center">
+      {/* Mid plane: warm light pools that slide against the portrait. */}
+      <ParallaxLayer depth={0.9} className="pointer-events-none absolute inset-0 -z-10">
+        <div className="absolute left-[12%] top-[18%] h-[38vmin] w-[38vmin] rounded-full bg-honey/20 blur-[90px]" />
+        <div className="absolute right-[8%] bottom-[12%] h-[30vmin] w-[30vmin] rounded-full bg-primary/20 blur-[80px]" />
+      </ParallaxLayer>
+
+      <ParallaxLayer
+        depth={1.6}
+        className="mx-auto flex min-h-[100dvh] max-w-5xl flex-col items-center justify-center px-6 py-16 text-center"
+      >
         <motion.span
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -106,7 +117,7 @@ function TitleScreen() {
         >
           Sterowanie: WASD / strzałki · E lub Spacja by wejść w interakcję · na telefonie: joystick i przycisk E
         </motion.p>
-      </section>
-    </main>
+      </ParallaxLayer>
+    </ParallaxHero>
   );
 }
