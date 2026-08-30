@@ -1,12 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { LEVELS } from "@/game/levels";
 import { useGameStore } from "@/store/gameStore";
 import { computeQuests, questCompletion } from "@/game/questUtils";
 import { inventoryFromCollected } from "@/game/inventory";
 import { Tilt3D } from "@/components/ui/tilt-3d";
 import { Switch } from "@/components/ui/switch";
+import { dailyDateKey, pickDaily, previousDayKey } from "@/game/daily";
 
 
 export const Route = createFileRoute("/menu")({
@@ -25,6 +26,29 @@ function MenuPage() {
   const talked = useGameStore((s) => s.talkedNpcs);
   const zenMode = useGameStore((s) => s.zenMode);
   const setZenMode = useGameStore((s) => s.setZenMode);
+  const dailyHistory = useGameStore((s) => s.dailyHistory);
+  const recordDaily = useGameStore((s) => s.recordDaily);
+
+  const unlockedLevelObjs = useMemo(() => LEVELS.filter((l) => unlocked.includes(l.id)), [unlocked]);
+  const todayKey = dailyDateKey();
+  const dailyLevel = useMemo(() => pickDaily(unlockedLevelObjs), [unlockedLevelObjs]);
+
+  useEffect(() => {
+    if (!dailyLevel) return;
+    const done = progress[dailyLevel.id]?.completed ?? false;
+    if (done && !dailyHistory[todayKey]) recordDaily(todayKey, dailyLevel.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dailyLevel, progress, todayKey]);
+
+  const streak = useMemo(() => {
+    let count = 0;
+    let cursor = dailyHistory[todayKey] ? todayKey : previousDayKey(todayKey);
+    while (dailyHistory[cursor]) {
+      count += 1;
+      cursor = previousDayKey(cursor);
+    }
+    return count;
+  }, [dailyHistory, todayKey]);
 
   return (
     <main className="min-h-[100dvh] px-6 py-16 md:py-24">
@@ -68,6 +92,36 @@ function MenuPage() {
           </div>
           <Switch checked={zenMode} onCheckedChange={setZenMode} />
         </motion.div>
+
+        {dailyLevel && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <Link
+              to="/poziom/$id"
+              params={{ id: dailyLevel.id }}
+              className="mt-3 flex items-center justify-between gap-3 rounded-2xl border border-primary/30 bg-primary/10 px-4 py-3 outline-none transition hover:bg-primary/15 focus-visible:ring-2 focus-visible:ring-honey focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            >
+              <div>
+                <span className="text-sm font-medium text-primary-foreground">
+                  🗓️ Wyzwanie dnia: {dailyLevel.title}
+                </span>
+                <p className="text-xs text-muted-foreground">
+                  {dailyHistory[todayKey]
+                    ? "Ukończone dzisiaj — wróć jutro po nowe wyzwanie."
+                    : "Zagraj dziś w wybrany poziom, by utrzymać passę."}
+                </p>
+              </div>
+              {streak > 0 && (
+                <span className="flex-none rounded-full bg-honey/20 px-3 py-1 text-xs font-bold text-honey">
+                  🔥 {streak} {streak === 1 ? "dzień" : "dni"}
+                </span>
+              )}
+            </Link>
+          </motion.div>
+        )}
 
         <div className="mt-10 grid gap-4 md:grid-cols-2">
           {LEVELS.map((l, i) => {

@@ -158,6 +158,9 @@ interface GameState {
    *  (no energy drain, no danger damage) regardless of the saved difficulty,
    *  for stress-free exploration. Not persisted, doesn't touch levelProgress/save. */
   zenMode: boolean;
+  /** Daily Challenge history: local date key (YYYY-MM-DD) -> id of the featured
+   *  level completed that day. Isolated from levelProgress/unlockedLevels/save. */
+  dailyHistory: Record<string, string>;
 
   // actions
   setVolume: (v: number) => void;
@@ -179,6 +182,7 @@ interface GameState {
   recordHop: () => void;
   addDistance: (px: number) => void;
   setZenMode: (v: boolean) => void;
+  recordDaily: (dateKey: string, levelId: string) => void;
 }
 
 export const useGameStore = create<GameState>()(
@@ -196,8 +200,13 @@ export const useGameStore = create<GameState>()(
       totalHops: 0,
       totalDistanceWalked: 0,
       zenMode: false,
+      dailyHistory: {},
 
       setZenMode: (v) => set({ zenMode: v }),
+      recordDaily: (dateKey, levelId) => {
+        if (get().dailyHistory[dateKey]) return;
+        set({ dailyHistory: { ...get().dailyHistory, [dateKey]: levelId } });
+      },
       recordHop: () => set({ totalHops: get().totalHops + 1 }),
       addDistance: (px) => set({ totalDistanceWalked: get().totalDistanceWalked + px }),
 
@@ -286,6 +295,7 @@ export const useGameStore = create<GameState>()(
           tutorialStage: 0,
           levelStartedAt: null,
           bestLevelTimes: {},
+          dailyHistory: {},
         }),
     }),
     {
@@ -307,6 +317,7 @@ export const useGameStore = create<GameState>()(
         bestLevelTimes: s.bestLevelTimes,
         totalHops: s.totalHops,
         totalDistanceWalked: s.totalDistanceWalked,
+        dailyHistory: s.dailyHistory,
       }),
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<GameState>;
