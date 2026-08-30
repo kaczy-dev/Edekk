@@ -12,13 +12,13 @@ export const Route = createFileRoute("/osiagniecia")({
 });
 
 const ACHIEVEMENTS = [
-  { id: "salon_complete", icon: "🛋️", title: "Puchaty Odkrywca", desc: "Ukończ Salon" },
+  { id: "salon_complete", icon: "🏰", title: "Puchaty Odkrywca", desc: "Ukończ Wały Chrobrego" },
   { id: "all_mice", icon: "🐭", title: "Łowca Myszek", desc: "Zbierz wszystkie myszki" },
   { id: "all_levels", icon: "⭐", title: "Mistrz Światów", desc: "Ukończ wszystkie 5 poziomów" },
   { id: "speedrun_5min", icon: "⚡", title: "Błyskawica", desc: "Ukończ poziom w <5 min" },
   { id: "zero_energy", icon: "🔋", title: "Energetyk", desc: "Osiągnij cel z pełną energią" },
   { id: "accessibility", icon: "♿", title: "Guru Dostępności", desc: "Włącz 5+ opcji dostępności" },
-  { id: "garden_100", icon: "🌻", title: "Ogrodnik", desc: "100% zbiorów w Ogrodzie" },
+  { id: "garden_100", icon: "🌻", title: "Ogrodnik", desc: "100% zbiorów w Parku Kasprowicza" },
   { id: "all_npcs", icon: "💬", title: "Rozmówca", desc: "Porozmawiaj ze wszystkimi NPC" },
   { id: "roof_master", icon: "🌙", title: "Nocny Myśliwy", desc: "Mistrz Dachu nocą" },
 ];

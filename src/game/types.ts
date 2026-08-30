@@ -2,7 +2,7 @@ export type Vec2 = { x: number; y: number };
 export type Rect = { x: number; y: number; w: number; h: number };
 
 export type ItemId =
-  | "bowl" | "ball" | "mouse" | "treat" | "key" | "chest" | "yarn" | "star" | "feather";
+  | "bowl" | "ball" | "mouse" | "treat" | "key" | "chest" | "yarn" | "star" | "feather" | "leaf";
 
 export type ItemDef = {
   id: ItemId;

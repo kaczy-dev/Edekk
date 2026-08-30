@@ -358,7 +358,7 @@ function SettingsPage() {
                 <AlertDialogTitle>Zresetować cały postęp?</AlertDialogTitle>
                 <AlertDialogDescription>
                   Stracisz ukończone poziomy, zebrane przedmioty i zapis gry. Odblokowany
-                  zostanie ponownie tylko Salon. Tej operacji nie można cofnąć.
+                  zostanie ponownie tylko pierwszy poziom. Tej operacji nie można cofnąć.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>

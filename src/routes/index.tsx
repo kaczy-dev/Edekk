@@ -12,7 +12,7 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Przygody Edka — gra o kocie Maine coon" },
-      { name: "description", content: "Wyrusz z Edkiem, dymnym Maine coonem, w przygodową grę eksploracyjną przez salon, ogród, strych, dach nocą i podwórko blokowiska." },
+      { name: "description", content: "Wyrusz z Edkiem, dymnym Maine coonem, w przygodową grę eksploracyjną przez Wały Chrobrego, Park Kasprowicza, złotą aleję, dach nocą i podwórko blokowiska w Szczecinie." },
       { property: "og:title", content: "Przygody Edka — gra o kocie Maine coon" },
       { property: "og:description", content: "Pięć światów, zagadki i mruczący bohater. Zagraj w grę o Edku." },
     ],
@@ -171,7 +171,7 @@ function TitleScreen() {
           transition={{ delay: 0.4 }}
           className="text-balance mt-4 max-w-xs text-center text-sm text-muted-foreground sm:max-w-md sm:text-base"
         >
-          Pięć światów. Jeden puchaty bohater. Eksploruj salon, ogród, strych, dach nocą i podwórko blokowiska.
+          Pięć światów. Jeden puchaty bohater. Eksploruj Wały Chrobrego, Park Kasprowicza, złotą aleję, dach nocą i podwórko blokowiska.
         </motion.p>
       </div>
 

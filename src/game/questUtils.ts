@@ -31,9 +31,9 @@ interface Snapshot {
 
 /** Items that don't spawn on the map — where to acquire them. */
 const ITEM_SOURCE_FALLBACK: Partial<Record<ItemId, { where: string; levelHint?: string }>> = {
-  yarn: { where: "Prezent od wiewiórki w Ogrodzie (porozmawiaj z nią)." },
+  yarn: { where: "Prezent od wiewiórki w Parku Kasprowicza (porozmawiaj z nią)." },
+  feather: { where: "Prezent od gołębia na podwórku (porozmawiaj z nim)." },
   treat: { where: "Nagroda za wypełnienie zadań pobocznych." },
-  chest: { where: "Otwierana kluczem na Strychu." },
 };
 
 function locationOf(obj: LevelObject, level: LevelDef): string {

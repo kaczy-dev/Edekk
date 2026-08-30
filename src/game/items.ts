@@ -10,4 +10,5 @@ export const ITEMS: Record<ItemId, ItemDef> = {
   yarn:  { id: "yarn",  name: "Kłębek",        emoji: "🧶", description: "Dar wiewiórki." },
   star:  { id: "star",  name: "Gwiazda",       emoji: "⭐", description: "Spadająca gwiazda." },
   feather: { id: "feather", name: "Piórko", emoji: "🪶", description: "Dar gołębia z podwórka." },
+  leaf: { id: "leaf", name: "Złoty liść", emoji: "🍁", description: "Liść z alei kasztanowej." },
 };

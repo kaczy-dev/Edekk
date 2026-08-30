@@ -11,7 +11,7 @@ export const Route = createFileRoute("/menu")({
   head: () => ({
     meta: [
       { title: "Wybierz poziom — Przygody Edka" },
-      { name: "description", content: "Wybierz świat: salon, ogród, strych, dach nocą albo blokowisko." },
+      { name: "description", content: "Wybierz świat: Wały Chrobrego, Park Kasprowicza, złotą aleję, dach nocą albo blokowisko." },
     ],
   }),
   component: MenuPage,
