@@ -21,7 +21,7 @@ export function PauseMenu({ open, onResume, onRestart }: Props) {
             initial={{ scale: 0.9, y: 20 }}
             animate={{ scale: 1, y: 0 }}
             exit={{ scale: 0.95, y: 10 }}
-            className="w-80 rounded-3xl border border-white/10 bg-card p-6 text-center shadow-2xl"
+            className="w-80 rounded-3xl border border-border bg-card p-6 text-center shadow-2xl"
           >
             <h3 className="font-display text-3xl font-semibold text-honey">Pauza</h3>
             <p className="mt-1 text-sm text-muted-foreground">Edek czeka spokojnie.</p>

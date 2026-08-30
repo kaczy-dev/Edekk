@@ -7,6 +7,8 @@ export class InputState {
   interactPressed = false;
   /** active when sprintMode === "toggle" */
   sprintToggled = false;
+  gamepadIndex: number | null = null;
+  gamepadDeadzone = 0.1;
   settings: ControlSettings = { ...DEFAULT_CONTROLS };
 
   setSettings(s: ControlSettings) {
@@ -38,6 +40,24 @@ export class InputState {
     window.removeEventListener("keyup", this.onKeyUp);
   }
 
+  pollGamepad(): { x: number; y: number } | null {
+    if (typeof navigator === "undefined" || !navigator.getGamepads) return null;
+    const gamepads = navigator.getGamepads?.();
+    if (!gamepads) return null;
+    const gp = gamepads[this.gamepadIndex ?? 0];
+    if (!gp) {
+      this.gamepadIndex = null;
+      return null;
+    }
+    this.gamepadIndex = gp.index;
+    const lx = gp.axes[0] ?? 0;
+    const ly = gp.axes[1] ?? 0;
+    const len = Math.hypot(lx, ly);
+    if (len < this.gamepadDeadzone) return null;
+    const scale = 1 / len;
+    return { x: lx * scale, y: ly * scale };
+  }
+
   getDirection(): { x: number; y: number } {
     let x = 0;
     let y = 0;
@@ -48,6 +68,11 @@ export class InputState {
     if (this.touch) {
       x += this.touch.x;
       y += this.touch.y;
+    }
+    const gamepadDir = this.pollGamepad();
+    if (gamepadDir) {
+      x += gamepadDir.x;
+      y += gamepadDir.y;
     }
     if (this.settings.invertY) y = -y;
     const len = Math.hypot(x, y);
@@ -60,12 +85,21 @@ export class InputState {
     if (this.settings.sprintMode === "toggle") {
       return this.sprintToggled || this.touchSprint;
     }
-    return this.keys.has("shift") || this.touchSprint;
+    const gamepadSprint = this.checkGamepadButton(4) || this.checkGamepadButton(5); // LB/RB
+    return this.keys.has("shift") || this.touchSprint || gamepadSprint;
   }
 
   consumeInteract() {
     const v = this.interactPressed;
     this.interactPressed = false;
-    return v;
+    const gamepadInteract = this.checkGamepadButton(0); // A button
+    return v || gamepadInteract;
+  }
+
+  private checkGamepadButton(button: number): boolean {
+    if (typeof navigator === "undefined" || !navigator.getGamepads) return false;
+    const gamepads = navigator.getGamepads?.();
+    const gp = gamepads?.[this.gamepadIndex ?? 0];
+    return gp?.buttons[button]?.pressed ?? false;
   }
 }

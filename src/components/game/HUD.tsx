@@ -190,12 +190,17 @@ export function HUD({ level, onPause, sprinting, getCatPos, onShowControls }: Pr
         </div>
       </div>
 
-      <div className="mt-3 pointer-events-auto w-56 max-w-[60vw] rounded-2xl border border-white/10 bg-black/40 p-1.5 backdrop-blur-md">
+      <div className={[
+        "mt-3 pointer-events-auto w-56 max-w-[60vw] rounded-2xl border bg-black/40 p-1.5 backdrop-blur-md transition",
+        energy < 30 ? "border-red-500/60 bg-red-950/20" : "border-white/10",
+      ].join(" ")}>
         <div className="relative h-3 overflow-hidden rounded-full bg-white/10">
           <motion.div
             className="absolute inset-y-0 left-0 rounded-full"
             style={{
-              background: sprinting
+              background: energy < 30
+                ? `linear-gradient(90deg, #dc2626, #ef4444)`
+                : sprinting
                 ? `linear-gradient(90deg, #ff8a5b, var(--color-honey))`
                 : `linear-gradient(90deg, var(--color-amber), var(--color-honey))`,
             }}
@@ -204,8 +209,11 @@ export function HUD({ level, onPause, sprinting, getCatPos, onShowControls }: Pr
           />
         </div>
         <div className="mt-1 flex items-center justify-between px-2 text-[10px] uppercase tracking-widest text-white/60">
-          <span>Energia · {Math.round(energy)}</span>
-          {sprinting && (
+          <span className={energy < 30 ? "text-red-400 font-semibold" : ""}>Energia · {Math.round(energy)}</span>
+          {energy < 30 && (
+            <span className="rounded-full bg-red-500/20 px-2 py-0.5 text-[9px] font-bold text-red-400 animate-pulse">Zmęczenie</span>
+          )}
+          {sprinting && energy >= 30 && (
             <span className="rounded-full bg-honey/20 px-2 py-0.5 text-[9px] font-bold text-honey">BIEG</span>
           )}
         </div>
@@ -215,7 +223,7 @@ export function HUD({ level, onPause, sprinting, getCatPos, onShowControls }: Pr
 
       {/* Distance legend for reach-quest arrows — auto-collapses after a few seconds. */}
       {goalIndicators && (
-        <div className="pointer-events-auto mb-2 self-start rounded-2xl border border-white/10 bg-black/50 p-2 backdrop-blur-md">
+        <div className="pointer-events-auto mb-2 self-start rounded-2xl border border-white/10 bg-black/50 p-2 backdrop-blur-md max-w-xs sm:max-w-none">
           <AnimatePresence initial={false} mode="wait">
             {legendExpanded ? (
               <motion.div
@@ -237,13 +245,13 @@ export function HUD({ level, onPause, sprinting, getCatPos, onShowControls }: Pr
                     ×
                   </button>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-col gap-1 sm:gap-2 sm:flex-wrap sm:flex-row">
                   {TIER_ORDER.map((tier) => {
                     const st = tierStyle(tier, colorBlind);
                     return (
-                      <div key={tier} className="flex items-center gap-1.5">
+                      <div key={tier} className="flex items-center gap-1 sm:gap-1.5 text-[9px] sm:text-[10px]">
                         <LegendSwatch shape={st.swatchShape} color={st.swatch} />
-                        <span className="text-[10px] text-white/80">
+                        <span className="text-white/80 whitespace-nowrap">
                           {st.glyph ? `${st.glyph} ` : ""}
                           {st.label}
                         </span>

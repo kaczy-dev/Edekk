@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { TIER_ORDER, tierStyle } from "@/game/tierStyle";
 import { GOAL_PROXIMITY, PROXIMITY_SCALE_RANGE, type GoalArchetype } from "@/game/proximity";
 import { useGameStore, DIFFICULTIES } from "@/store/gameStore";
-import type { JoystickSide, SprintMode, TouchControl, Difficulty } from "@/store/gameStore";
+import type { JoystickSide, SprintMode, TouchControl, Difficulty, ArrowAnimation } from "@/store/gameStore";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,6 +14,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 
 export const Route = createFileRoute("/ustawienia")({
   head: () => ({
@@ -77,26 +80,24 @@ function SettingsPage() {
               Głośność
               <span className="text-muted-foreground">{Math.round(volume * 100)}%</span>
             </label>
-            <input
-              type="range"
-              min={0}
-              max={1}
-              step={0.05}
-              value={volume}
-              onChange={(e) => setVolume(parseFloat(e.target.value))}
-              className="mt-3 w-full accent-primary"
-            />
+            <div className="mt-3">
+              <Slider
+                min={0}
+                max={1}
+                step={0.05}
+                value={[volume]}
+                onValueChange={(value) => setVolume(value[0])}
+              />
+            </div>
           </div>
 
-          <label className="flex items-center justify-between rounded-2xl bg-muted/50 px-4 py-3">
+          <div className="flex items-center justify-between rounded-2xl bg-muted/50 px-4 py-3">
             <span className="text-sm font-medium">Wyciszenie</span>
-            <input
-              type="checkbox"
+            <Switch
               checked={muted}
-              onChange={(e) => setMuted(e.target.checked)}
-              className="h-5 w-5 accent-primary"
+              onCheckedChange={setMuted}
             />
-          </label>
+          </div>
         </section>
 
         {/* Controls */}
@@ -116,15 +117,15 @@ function SettingsPage() {
               Czułość ruchu
               <span className="text-muted-foreground">{controls.sensitivity.toFixed(2)}×</span>
             </label>
-            <input
-              type="range"
-              min={0.5}
-              max={1.5}
-              step={0.05}
-              value={controls.sensitivity}
-              onChange={(e) => setControls({ sensitivity: parseFloat(e.target.value) })}
-              className="mt-3 w-full accent-primary"
-            />
+            <div className="mt-3">
+              <Slider
+                min={0.5}
+                max={1.5}
+                step={0.05}
+                value={[controls.sensitivity]}
+                onValueChange={(value) => setControls({ sensitivity: value[0] })}
+              />
+            </div>
             <p className="mt-1 text-xs text-muted-foreground">
               Wpływa na maksymalną prędkość Edka.
             </p>
@@ -132,41 +133,29 @@ function SettingsPage() {
 
           <div>
             <p className="text-sm font-medium">Tryb biegu (Shift / BIEG)</p>
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              {(["hold", "toggle"] as SprintMode[]).map((mode) => (
-                <button
-                  key={mode}
-                  onClick={() => setControls({ sprintMode: mode })}
-                  className={[
-                    "rounded-2xl border px-4 py-3 text-sm font-medium transition",
-                    controls.sprintMode === mode
-                      ? "border-primary bg-primary/15 text-foreground"
-                      : "border-border bg-muted/40 text-muted-foreground hover:text-foreground",
-                  ].join(" ")}
-                >
-                  {mode === "hold" ? "Trzymaj" : "Przełącz"}
-                </button>
-              ))}
+            <div className="mt-3">
+              <SegmentedControl
+                options={[
+                  { value: "hold" as SprintMode, label: "Trzymaj" },
+                  { value: "toggle" as SprintMode, label: "Przełącz" },
+                ]}
+                value={controls.sprintMode}
+                onChange={(mode) => setControls({ sprintMode: mode })}
+              />
             </div>
           </div>
 
           <div>
             <p className="text-sm font-medium">Sterowanie mobilne</p>
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              {(["stick", "dpad"] as TouchControl[]).map((mode) => (
-                <button
-                  key={mode}
-                  onClick={() => setControls({ touchControl: mode })}
-                  className={[
-                    "rounded-2xl border px-4 py-3 text-sm font-medium transition",
-                    controls.touchControl === mode
-                      ? "border-primary bg-primary/15 text-foreground"
-                      : "border-border bg-muted/40 text-muted-foreground hover:text-foreground",
-                  ].join(" ")}
-                >
-                  {mode === "stick" ? "🕹️ Joystick" : "✚ D-Pad"}
-                </button>
-              ))}
+            <div className="mt-3">
+              <SegmentedControl
+                options={[
+                  { value: "stick" as TouchControl, label: "🕹️ Joystick" },
+                  { value: "dpad" as TouchControl, label: "✚ D-Pad" },
+                ]}
+                value={controls.touchControl}
+                onChange={(mode) => setControls({ touchControl: mode })}
+              />
             </div>
             <p className="mt-2 text-xs text-muted-foreground">
               Joystick — płynny analog. D-Pad — 4 kierunkowe przyciski.
@@ -175,87 +164,71 @@ function SettingsPage() {
 
           <div>
             <p className="text-sm font-medium">Strona sterowania (mobile)</p>
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              {(["left", "right"] as JoystickSide[]).map((side) => (
-                <button
-                  key={side}
-                  onClick={() => setControls({ joystickSide: side })}
-                  className={[
-                    "rounded-2xl border px-4 py-3 text-sm font-medium transition",
-                    controls.joystickSide === side
-                      ? "border-primary bg-primary/15 text-foreground"
-                      : "border-border bg-muted/40 text-muted-foreground hover:text-foreground",
-                  ].join(" ")}
-                >
-                  {side === "left" ? "Po lewej" : "Po prawej"}
-                </button>
-              ))}
+            <div className="mt-3">
+              <SegmentedControl
+                options={[
+                  { value: "left" as JoystickSide, label: "Po lewej" },
+                  { value: "right" as JoystickSide, label: "Po prawej" },
+                ]}
+                value={controls.joystickSide}
+                onChange={(side) => setControls({ joystickSide: side })}
+              />
             </div>
           </div>
 
-          <label className="flex items-center justify-between rounded-2xl bg-muted/50 px-4 py-3">
+          <div className="flex items-center justify-between rounded-2xl bg-muted/50 px-4 py-3">
             <span className="text-sm font-medium">Odwróć oś pionową (Y)</span>
-            <input
-              type="checkbox"
+            <Switch
               checked={controls.invertY}
-              onChange={(e) => setControls({ invertY: e.target.checked })}
-              className="h-5 w-5 accent-primary"
+              onCheckedChange={(checked) => setControls({ invertY: checked })}
             />
-          </label>
+          </div>
 
-          <label className="flex items-center justify-between rounded-2xl bg-muted/50 px-4 py-3">
+          <div className="flex items-center justify-between rounded-2xl bg-muted/50 px-4 py-3">
             <span className="text-sm font-medium">Wibracja przy uderzeniu</span>
-            <input
-              type="checkbox"
+            <Switch
               checked={controls.vibration}
-              onChange={(e) => setControls({ vibration: e.target.checked })}
-              className="h-5 w-5 accent-primary"
+              onCheckedChange={(checked) => setControls({ vibration: checked })}
             />
-          </label>
+          </div>
 
-          <label className="flex items-center justify-between gap-4 rounded-2xl bg-muted/50 px-4 py-3">
+          <div className="flex items-center justify-between gap-4 rounded-2xl bg-muted/50 px-4 py-3">
             <span>
               <span className="block text-sm font-medium">Pokazuj podpowiedzi sterowania</span>
             </span>
-            <input
-              type="checkbox"
+            <Switch
               checked={controls.showHints}
-              onChange={(e) => setControls({ showHints: e.target.checked })}
-              className="h-5 w-5 accent-primary"
+              onCheckedChange={(checked) => setControls({ showHints: checked })}
             />
-          </label>
+          </div>
 
-          <label className="mt-3 flex items-center justify-between gap-4 rounded-2xl bg-muted/50 px-4 py-3">
+          <div className="mt-3 flex items-center justify-between gap-4 rounded-2xl bg-muted/50 px-4 py-3">
             <span>
               <span className="block text-sm font-medium">Wskaźniki celu (strzałka i dystans)</span>
               <span className="mt-1 block text-xs text-muted-foreground">
-                Obracające się strzałki i licznik kroków dla zadań „dotrzyj do celu”. Wyłącz, jeśli
+                Obracające się strzałki i licznik kroków dla zadań „dotrzyj do celu". Wyłącz, jeśli
                 jesteś wrażliwy na ruch — cele nadal opisane są w liście zadań.
               </span>
             </span>
-            <input
-              type="checkbox"
+            <Switch
               checked={controls.goalIndicators}
-              onChange={(e) => setControls({ goalIndicators: e.target.checked })}
-              className="h-5 w-5 shrink-0 accent-primary"
+              onCheckedChange={(checked) => setControls({ goalIndicators: checked })}
             />
-          </label>
+          </div>
 
-          <label className="mt-3 flex items-center justify-between gap-4 rounded-2xl bg-muted/50 px-4 py-3">
+          <div className="mt-3 flex items-center justify-between gap-4 rounded-2xl bg-muted/50 px-4 py-3">
             <span>
               <span className="block text-sm font-medium">Ograniczony ruch</span>
               <span className="mt-1 block text-xs text-muted-foreground">
-                Wyłącza pulsujące poświaty i płynne przejścia („ease”) wskaźników celu — strzałki i
+                Wyłącza pulsujące poświaty i płynne przejścia („ease") wskaźników celu — strzałki i
                 dystanse zmieniają się natychmiast, bez animacji.
               </span>
             </span>
-            <input
-              type="checkbox"
+            <Switch
               checked={controls.reducedMotion}
-              onChange={(e) => setControls({ reducedMotion: e.target.checked })}
-              className="h-5 w-5 shrink-0 accent-primary"
+              onCheckedChange={(checked) => setControls({ reducedMotion: checked })}
             />
-          </label>
+          </div>
 
           <div className="mt-3 rounded-2xl bg-muted/50 px-4 py-3">
             <label className="flex items-center justify-between text-sm font-medium">
@@ -266,22 +239,22 @@ function SettingsPage() {
                   : `${controls.legendAutoCollapseSec.toFixed(1)} s`}
               </span>
             </label>
-            <input
-              type="range"
-              min={0}
-              max={15}
-              step={0.5}
-              value={controls.legendAutoCollapseSec}
-              onChange={(e) => setControls({ legendAutoCollapseSec: parseFloat(e.target.value) })}
-              className="mt-3 w-full accent-primary"
-            />
+            <div className="mt-3">
+              <Slider
+                min={0}
+                max={15}
+                step={0.5}
+                value={[controls.legendAutoCollapseSec]}
+                onValueChange={(value) => setControls({ legendAutoCollapseSec: value[0] })}
+              />
+            </div>
             <p className="mt-1 text-xs text-muted-foreground">
               Po tym czasie legenda kolorów dystansu na HUD zwija się do małego przycisku. Ustaw 0,
               żeby legenda była zawsze rozwinięta.
             </p>
           </div>
 
-          <label className="mt-3 flex items-center justify-between gap-4 rounded-2xl bg-muted/50 px-4 py-3">
+          <div className="mt-3 flex items-center justify-between gap-4 rounded-2xl bg-muted/50 px-4 py-3">
             <span>
               <span className="block text-sm font-medium">Tryb dla daltonistów</span>
               <span className="mt-1 block text-xs text-muted-foreground">
@@ -306,33 +279,50 @@ function SettingsPage() {
                 </span>
               )}
             </span>
-            <input
-              type="checkbox"
+            <Switch
               checked={controls.colorBlindMode}
-              onChange={(e) => setControls({ colorBlindMode: e.target.checked })}
-              className="h-5 w-5 shrink-0 accent-primary"
+              onCheckedChange={(checked) => setControls({ colorBlindMode: checked })}
             />
-          </label>
+          </div>
 
           {controls.goalIndicators && (
-            <div className="mt-3 rounded-2xl bg-muted/50 px-4 py-3">
-              <label className="flex items-center justify-between text-sm font-medium">
-                Kalibracja progu „tuż obok”
+            <>
+              <div className="mt-3">
+                <p className="text-sm font-medium">Animacja strzałek do celu</p>
+                <div className="mt-3">
+                  <SegmentedControl
+                    options={[
+                      { value: "smooth" as const, label: "Płynna" },
+                      { value: "snap" as const, label: "Skok" },
+                      { value: "off" as const, label: "Brak" },
+                    ]}
+                    value={controls.arrowAnimation}
+                    onChange={(anim) => setControls({ arrowAnimation: anim })}
+                  />
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Płynna: rotacja ze wskazówkami. Skok: natychmiast bez animacji. Brak: wyłącz strzałki (pozostają dane dystansu).
+                </p>
+              </div>
+
+              <div className="mt-3 rounded-2xl bg-muted/50 px-4 py-3">
+                <label className="flex items-center justify-between text-sm font-medium">
+                  Kalibracja progu „tuż obok"
                 <span className="text-muted-foreground">
                   {controls.goalProximityScale.toFixed(2)}×
                 </span>
               </label>
-              <input
-                type="range"
-                min={PROXIMITY_SCALE_RANGE.min}
-                max={PROXIMITY_SCALE_RANGE.max}
-                step={PROXIMITY_SCALE_RANGE.step}
-                value={controls.goalProximityScale}
-                onChange={(e) =>
-                  setControls({ goalProximityScale: parseFloat(e.target.value) })
-                }
-                className="mt-3 w-full accent-primary"
-              />
+              <div className="mt-3">
+                <Slider
+                  min={PROXIMITY_SCALE_RANGE.min}
+                  max={PROXIMITY_SCALE_RANGE.max}
+                  step={PROXIMITY_SCALE_RANGE.step}
+                  value={[controls.goalProximityScale]}
+                  onValueChange={(value) =>
+                    setControls({ goalProximityScale: value[0] })
+                  }
+                />
+              </div>
               <p className="mt-1 text-xs text-muted-foreground">
                 Skaluje wszystkie progi. Bazowy zasięg zależy od rozmiaru i typu celu:
               </p>
@@ -351,7 +341,8 @@ function SettingsPage() {
                   );
                 })}
               </ul>
-            </div>
+              </div>
+            </>
           )}
         </section>
 

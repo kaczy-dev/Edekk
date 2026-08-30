@@ -22,6 +22,7 @@ export function GoalArrows({ level, getCatPos, getCamera, containerRef }: Props)
   const volume = useGameStore((s) => s.volume);
   const muted = useGameStore((s) => s.muted);
   const goalIndicators = useGameStore((s) => s.controls.goalIndicators);
+  const arrowAnimation = useGameStore((s) => s.controls.arrowAnimation);
   const colorBlind = useGameStore((s) => s.controls.colorBlindMode);
   const reducedMotion = useGameStore((s) => s.controls.reducedMotion);
 
@@ -43,7 +44,10 @@ export function GoalArrows({ level, getCatPos, getCamera, containerRef }: Props)
 
   const container = containerRef.current;
   const cam = getCamera();
-  if (!goalIndicators || !tracks.length || !container || !cam) return null;
+  if (!goalIndicators || arrowAnimation === "off" || !tracks.length || !container || !cam) return null;
+
+  const isSnap = arrowAnimation === "snap";
+  const transitionStyle = isSnap ? "none" : "transform 220ms cubic-bezier(0.22, 1, 0.36, 1)";
 
   const w = container.clientWidth;
   const h = container.clientHeight;
@@ -86,9 +90,9 @@ export function GoalArrows({ level, getCatPos, getCamera, containerRef }: Props)
             key={t.id}
             style={{
               transform: `translate(${x}px, ${y}px) translate(-50%, -50%) rotate(${angle}deg)`,
-              transition: reducedMotion ? "none" : "transform 220ms cubic-bezier(0.22, 1, 0.36, 1)",
+              transition: reducedMotion ? "none" : transitionStyle,
             }}
-            className={["absolute left-0 top-0", reducedMotion ? "" : "animate-fade-in"].join(" ")}
+            className={["absolute left-0 top-0", reducedMotion || isSnap ? "" : "animate-fade-in"].join(" ")}
           >
             <div
               className={[
@@ -122,7 +126,7 @@ export function GoalArrows({ level, getCatPos, getCamera, containerRef }: Props)
                 />
               </svg>
               <span
-                style={{ transform: `rotate(${-angle}deg)`, transition: reducedMotion ? "none" : "transform 220ms cubic-bezier(0.22, 1, 0.36, 1)" }}
+                style={{ transform: `rotate(${-angle}deg)`, transition: reducedMotion ? "none" : transitionStyle }}
                 className={[
                   "absolute -bottom-4 rounded-full border bg-black/75 px-1.5 py-[1px] text-[9px] font-bold tabular-nums backdrop-blur-sm",
                   palette.chip,

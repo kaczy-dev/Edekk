@@ -14,6 +14,8 @@ import { PauseMenu } from "./PauseMenu";
 import { VirtualJoystick } from "./VirtualJoystick";
 import { DPad } from "./DPad";
 import { GoalArrows } from "./GoalArrows";
+import { TutorialOverlay } from "./TutorialOverlay";
+import { audio } from "@/lib/audio";
 import edekSprite from "@/assets/edek-topdown.png";
 import { AnimatePresence, motion } from "framer-motion";
 
@@ -36,6 +38,8 @@ export function GameCanvas({ level }: Props) {
 
   const controls = useGameStore((s) => s.controls);
   const difficulty = useGameStore((s) => s.difficulty);
+  const tutorialStage = useGameStore((s) => s.tutorialStage);
+  const setTutorialStage = useGameStore((s) => s.setTutorialStage);
   const showHintsPref = controls.showHints;
   const [showHint, setShowHint] = useState(showHintsPref);
   const [showHintModal, setShowHintModal] = useState(false);
@@ -46,6 +50,13 @@ export function GameCanvas({ level }: Props) {
     const t = setTimeout(() => setShowHint(false), 6000);
     return () => clearTimeout(t);
   }, [level.id, showHintsPref]);
+
+  // Start tutorial on first level if not completed
+  useEffect(() => {
+    if (tutorialStage === 0 && level.id === "1") {
+      setTutorialStage(1);
+    }
+  }, [level.id, tutorialStage, setTutorialStage]);
 
   const startLevel = useGameStore((s) => s.startLevel);
   const pickUp = useGameStore((s) => s.pickUp);
@@ -150,6 +161,7 @@ export function GameCanvas({ level }: Props) {
       onPickUp: (obj: LevelObject) => {
         if (!obj.itemId) return;
         pickUp(obj.itemId, obj.id, level.id);
+        audio.playPickup(useGameStore.getState().muted ? 0 : useGameStore.getState().volume);
         if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
         setToast(`${ITEMS[obj.itemId].emoji}  ${ITEMS[obj.itemId].name}`);
         toastTimerRef.current = setTimeout(() => setToast(null), 1500);
@@ -178,6 +190,7 @@ export function GameCanvas({ level }: Props) {
         const next = LEVELS[idx + 1];
         completeLevel(level.id, next?.id);
         clearSave();
+        audio.playCompletion(useGameStore.getState().muted ? 0 : useGameStore.getState().volume);
         setDialog(obj.message ?? "Cel osiągnięty!");
         // Navigation happens in a useEffect watching for dialog close + completion
       },
@@ -338,6 +351,7 @@ export function GameCanvas({ level }: Props) {
         difficulty={difficulty}
         sprintMode={controls.sprintMode}
       />
+      <TutorialOverlay stage={tutorialStage} />
 
       <AnimatePresence>
         {showHint && !paused && (
@@ -404,6 +418,14 @@ export function GameCanvas({ level }: Props) {
           side={joySide}
           onChange={(v) => {
             if (engineRef.current) engineRef.current.input.touch = v;
+          }}
+          onSprintToggle={(active) => {
+            if (!engineRef.current) return;
+            if (controls.sprintMode === "toggle") {
+              engineRef.current.input.sprintToggled = active;
+            } else {
+              engineRef.current.input.touchSprint = active;
+            }
           }}
         />
       )}

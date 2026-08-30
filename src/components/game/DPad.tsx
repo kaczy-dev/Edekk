@@ -46,7 +46,7 @@ export function DPad({ onChange, side = "left" }: Props) {
       onPointerLeave={release(d)}
       aria-label={d}
       className={[
-        "pointer-events-auto grid place-items-center text-white/80 text-lg font-bold select-none transition active:scale-95 backdrop-blur",
+        "pointer-events-auto grid place-items-center text-white/80 text-lg font-bold select-none transition active:scale-95 backdrop-blur-xl",
         pressed.current.has(d)
           ? "bg-honey/30 text-honey border-honey/70"
           : "bg-black/45 border-white/15",

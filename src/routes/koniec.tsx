@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import edekPortrait from "@/assets/edek-portrait.jpg";
+import { ParallaxHero, ParallaxLayer } from "@/components/game/ParallaxHero";
 
 export const Route = createFileRoute("/koniec")({
   head: () => ({
@@ -14,12 +15,28 @@ export const Route = createFileRoute("/koniec")({
 
 function EndScreen() {
   return (
-    <main className="relative min-h-[100dvh] overflow-hidden">
-      <div className="absolute inset-0 -z-10">
-        <img src={edekPortrait} alt="" aria-hidden className="h-full w-full object-cover opacity-40" width={1280} height={1280} />
+    <ParallaxHero className="relative min-h-[100dvh] overflow-hidden">
+      <ParallaxLayer depth={0.35} className="absolute inset-0 -z-10">
+        <img
+          src={edekPortrait}
+          alt=""
+          aria-hidden
+          className="h-[112%] w-[112%] -translate-x-[5%] -translate-y-[5%] object-cover opacity-40"
+          width={1280}
+          height={1280}
+        />
         <div className="absolute inset-0 bg-gradient-to-b from-night/60 via-background/80 to-background" />
-      </div>
-      <section className="mx-auto flex min-h-[100dvh] max-w-3xl flex-col items-center justify-center px-6 text-center">
+      </ParallaxLayer>
+
+      <ParallaxLayer depth={0.9} className="pointer-events-none absolute inset-0 -z-10">
+        <div className="absolute left-[8%] top-[24%] h-[42vmin] w-[42vmin] rounded-full bg-honey/20 blur-[100px]" />
+        <div className="absolute right-[6%] top-[38%] h-[35vmin] w-[35vmin] rounded-full bg-primary/20 blur-[85px]" />
+      </ParallaxLayer>
+
+      <ParallaxLayer
+        depth={1.6}
+        className="mx-auto flex min-h-[100dvh] max-w-3xl flex-col items-center justify-center px-6 text-center"
+      >
         <motion.span
           initial={{ scale: 0.5, opacity: 0, rotate: -15 }}
           animate={{ scale: 1, opacity: 1, rotate: 0 }}
@@ -57,7 +74,7 @@ function EndScreen() {
             Tytuł
           </Link>
         </motion.div>
-      </section>
-    </main>
+      </ParallaxLayer>
+    </ParallaxHero>
   );
 }

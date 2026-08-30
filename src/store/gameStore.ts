@@ -13,6 +13,7 @@ export type SprintMode = "hold" | "toggle";
 export type JoystickSide = "left" | "right";
 export type TouchControl = "stick" | "dpad";
 export type Difficulty = "easy" | "medium" | "hard";
+export type ArrowAnimation = "smooth" | "snap" | "off";
 
 export interface ControlSettings {
   sensitivity: number;       // 0.5 .. 1.5 — multiplier on max speed
@@ -24,6 +25,8 @@ export interface ControlSettings {
   showHints: boolean;
   /** Motion-sensitivity: show rotating goal arrows + distance badges for reach quests. */
   goalIndicators: boolean;
+  /** Arrow animation: smooth rotation, snap to angle, or hidden. */
+  arrowAnimation: ArrowAnimation;
   /** Calibration multiplier for the "tuż obok" proximity thresholds (0.6–1.8). */
   goalProximityScale: number;
   /** Colour-blind mode: encode distance tiers with shapes/patterns/glyphs, not just hue. */
@@ -61,6 +64,7 @@ export const DEFAULT_CONTROLS: ControlSettings = {
   vibration: true,
   showHints: true,
   goalIndicators: true,
+  arrowAnimation: "smooth",
   goalProximityScale: 1,
   colorBlindMode: false,
   reducedMotion: false,
@@ -103,6 +107,8 @@ interface GameState {
   energy: number;
   /** auto-saved resume point */
   save: SaveSlot | null;
+  /** Tutorial progression (0 = not started, 1-4 = active step, 5 = complete) */
+  tutorialStage: number;
 
   // actions
   setVolume: (v: number) => void;
@@ -120,6 +126,7 @@ interface GameState {
   setSave: (slot: SaveSlot) => void;
   clearSave: () => void;
   resetProgress: () => void;
+  setTutorialStage: (stage: number) => void;
 }
 
 
@@ -132,6 +139,7 @@ export const useGameStore = create<GameState>()(
       difficulty: "medium",
       ...INITIAL_PROGRESS,
       energy: DIFFICULTIES.medium.startEnergy,
+      tutorialStage: 0,
 
       setVolume: (v) => set({ volume: Math.max(0, Math.min(1, v)) }),
       setMuted: (m) => set({ muted: m }),
@@ -196,10 +204,12 @@ export const useGameStore = create<GameState>()(
 
       setSave: (slot) => set({ save: slot }),
       clearSave: () => set({ save: null }),
+      setTutorialStage: (stage) => set({ tutorialStage: stage }),
 
       resetProgress: () => set({
         ...INITIAL_PROGRESS,
         energy: DIFFICULTIES[get().difficulty].startEnergy,
+        tutorialStage: 0,
       }),
     }),
     {

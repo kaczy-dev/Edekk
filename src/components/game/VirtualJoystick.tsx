@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 interface Props {
   onChange: (v: { x: number; y: number } | null) => void;
+  onSprintToggle?: (active: boolean) => void;
   side?: "left" | "right";
 }
 
@@ -9,11 +10,13 @@ const SIZE = 160;
 const KNOB = 64;
 const DEADZONE = 0.10;
 
-export function VirtualJoystick({ onChange, side = "left" }: Props) {
+export function VirtualJoystick({ onChange, onSprintToggle, side = "left" }: Props) {
   const baseRef = useRef<HTMLDivElement>(null);
   const knobRef = useRef<HTMLDivElement>(null);
   const activeId = useRef<number | null>(null);
   const [active, setActive] = useState<{ x: number; y: number } | null>(null);
+  const [sprintActive, setSprintActive] = useState(false);
+  const lastTapTime = useRef(0);
 
   useEffect(() => {
     const base = baseRef.current;
@@ -30,6 +33,13 @@ export function VirtualJoystick({ onChange, side = "left" }: Props) {
     const onDown = (e: PointerEvent) => {
       activeId.current = e.pointerId;
       base.setPointerCapture(e.pointerId);
+      const now = Date.now();
+      if (now - lastTapTime.current < 300) {
+        const newSprint = !sprintActive;
+        setSprintActive(newSprint);
+        onSprintToggle?.(newSprint);
+      }
+      lastTapTime.current = now;
       move(e);
     };
     const move = (e: PointerEvent) => {
@@ -87,7 +97,9 @@ export function VirtualJoystick({ onChange, side = "left" }: Props) {
       className={[
         "pointer-events-auto fixed bottom-8 z-40 touch-none rounded-full border-2 backdrop-blur-xl shadow-2xl md:hidden transition-colors",
         side === "left" ? "left-6" : "right-6",
-        active ? "border-honey/70 bg-gradient-to-br from-white/25 to-white/5" : "border-white/20 bg-gradient-to-br from-white/15 to-white/5",
+        sprintActive
+          ? "border-primary/80 bg-gradient-to-br from-primary/20 to-primary/5"
+          : active ? "border-honey/70 bg-gradient-to-br from-white/25 to-white/5" : "border-white/20 bg-gradient-to-br from-white/15 to-white/5",
       ].join(" ")}
       style={{ width: SIZE, height: SIZE }}
       aria-label="Joystick"
@@ -106,7 +118,9 @@ export function VirtualJoystick({ onChange, side = "left" }: Props) {
         ref={knobRef}
         className={[
           "absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full shadow-xl ring-2 transition-[box-shadow,ring-color] duration-75 ease-out",
-          active ? "ring-honey/60 bg-gradient-to-br from-honey to-primary" : "ring-white/30 bg-gradient-to-br from-primary to-accent",
+          sprintActive
+            ? "ring-primary/70 bg-gradient-to-br from-primary to-accent"
+            : active ? "ring-honey/60 bg-gradient-to-br from-honey to-primary" : "ring-white/30 bg-gradient-to-br from-primary to-accent",
         ].join(" ")}
         style={{ width: KNOB, height: KNOB }}
       >

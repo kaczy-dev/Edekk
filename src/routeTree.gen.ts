@@ -10,14 +10,20 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UstawieniaRouteImport } from './routes/ustawienia'
+import { Route as OsiagnieciaRouteImport } from './routes/osiagniecia'
 import { Route as MenuRouteImport } from './routes/menu'
 import { Route as KoniecRouteImport } from './routes/koniec'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as PoziomIdRouteImport } from './routes/poziom.$id'
+import { Route as PoziomIdRouteImport } from './routes/poziom./$id'
 
 const UstawieniaRoute = UstawieniaRouteImport.update({
   id: '/ustawienia',
   path: '/ustawienia',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OsiagnieciaRoute = OsiagnieciaRouteImport.update({
+  id: '/osiagniecia',
+  path: '/osiagniecia',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MenuRoute = MenuRouteImport.update({
@@ -45,6 +51,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/koniec': typeof KoniecRoute
   '/menu': typeof MenuRoute
+  '/osiagniecia': typeof OsiagnieciaRoute
   '/ustawienia': typeof UstawieniaRoute
   '/poziom/$id': typeof PoziomIdRoute
 }
@@ -52,6 +59,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/koniec': typeof KoniecRoute
   '/menu': typeof MenuRoute
+  '/osiagniecia': typeof OsiagnieciaRoute
   '/ustawienia': typeof UstawieniaRoute
   '/poziom/$id': typeof PoziomIdRoute
 }
@@ -60,21 +68,31 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/koniec': typeof KoniecRoute
   '/menu': typeof MenuRoute
+  '/osiagniecia': typeof OsiagnieciaRoute
   '/ustawienia': typeof UstawieniaRoute
   '/poziom/$id': typeof PoziomIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/koniec' | '/menu' | '/ustawienia' | '/poziom/$id'
+  fullPaths:
+    '/' | '/koniec' | '/menu' | '/osiagniecia' | '/ustawienia' | '/poziom/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/koniec' | '/menu' | '/ustawienia' | '/poziom/$id'
-  id: '__root__' | '/' | '/koniec' | '/menu' | '/ustawienia' | '/poziom/$id'
+  to: '/' | '/koniec' | '/menu' | '/osiagniecia' | '/ustawienia' | '/poziom/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/koniec'
+    | '/menu'
+    | '/osiagniecia'
+    | '/ustawienia'
+    | '/poziom/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   KoniecRoute: typeof KoniecRoute
   MenuRoute: typeof MenuRoute
+  OsiagnieciaRoute: typeof OsiagnieciaRoute
   UstawieniaRoute: typeof UstawieniaRoute
   PoziomIdRoute: typeof PoziomIdRoute
 }
@@ -86,6 +104,13 @@ declare module '@tanstack/react-router' {
       path: '/ustawienia'
       fullPath: '/ustawienia'
       preLoaderRoute: typeof UstawieniaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/osiagniecia': {
+      id: '/osiagniecia'
+      path: '/osiagniecia'
+      fullPath: '/osiagniecia'
+      preLoaderRoute: typeof OsiagnieciaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/menu': {
@@ -123,6 +148,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   KoniecRoute: KoniecRoute,
   MenuRoute: MenuRoute,
+  OsiagnieciaRoute: OsiagnieciaRoute,
   UstawieniaRoute: UstawieniaRoute,
   PoziomIdRoute: PoziomIdRoute,
 }
