@@ -8,7 +8,7 @@ import { ITEMS } from "@/game/items";
 import { NPC_GIFTS, giftObjId } from "@/game/inventory";
 import { HUD } from "./HUD";
 import { DialogBox } from "./DialogBox";
-import { Toast } from "./Toast";
+import { Toast, type ToastItem } from "./Toast";
 import { ControlsModal } from "./ControlsModal";
 import { PauseMenu } from "./PauseMenu";
 import { VirtualJoystick } from "./VirtualJoystick";
@@ -34,12 +34,12 @@ export function GameCanvas({ level }: Props) {
   const [dialog, setDialog] = useState<string | null>(() =>
     useGameStore.getState().levelProgress[level.id]?.completed ? null : level.intro
   );
-  const [toast, setToast] = useState<string | null>(null);
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const toastIdRef = useRef(0);
   const [saveIndicator, setSaveIndicator] = useState(false);
   const [paused, setPaused] = useState(false);
   const [nearby, setNearby] = useState<LevelObject | null>(null);
   const [sprinting, setSprinting] = useState(false);
-  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const saveIndicatorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSaveIndicatorRef = useRef(0);
   const autoPausedRef = useRef(false);
@@ -183,11 +183,12 @@ export function GameCanvas({ level }: Props) {
       onNearby: (obj: LevelObject | null) => setNearby(obj),
       onPickUp: (obj: LevelObject) => {
         if (!obj.itemId) return;
-        pickUp(obj.itemId, obj.id, level.id);
+        const itemId = obj.itemId;
+        pickUp(itemId, obj.id, level.id);
         audio.playPickup(useGameStore.getState().muted ? 0 : useGameStore.getState().volume);
-        if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-        setToast(`${ITEMS[obj.itemId].emoji}  ${ITEMS[obj.itemId].name}`);
-        toastTimerRef.current = setTimeout(() => setToast(null), 1500);
+        const id = ++toastIdRef.current;
+        setToasts((prev) => [...prev, { id, text: `${ITEMS[itemId].emoji}  ${ITEMS[itemId].name}` }]);
+        setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 1500);
       },
       onTalk: (obj: LevelObject) => {
         setDialog(obj.message ?? "...");
@@ -312,7 +313,6 @@ export function GameCanvas({ level }: Props) {
       window.removeEventListener("pagehide", onHide);
       document.removeEventListener("visibilitychange", onHide);
       if (saveTimer) clearInterval(saveTimer);
-      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
       if (saveIndicatorTimerRef.current) clearTimeout(saveIndicatorTimerRef.current);
       onHide();
       engineRef.current?.stop();
@@ -383,7 +383,7 @@ export function GameCanvas({ level }: Props) {
       </AnimatePresence>
 
       <DialogBox text={dialog} onClose={() => setDialog(null)} />
-      <Toast text={toast} />
+      <Toast items={toasts} />
       <AnimatePresence>
         {saveIndicator && (
           <motion.div

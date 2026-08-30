@@ -9,7 +9,7 @@ import { ITEMS } from "@/game/items";
 import { NPC_GIFTS, giftObjId } from "@/game/inventory";
 import { HUD } from "./HUD";
 import { DialogBox } from "./DialogBox";
-import { Toast } from "./Toast";
+import { Toast, type ToastItem } from "./Toast";
 import { PauseMenu } from "./PauseMenu";
 import { ControlsModal } from "./ControlsModal";
 import { VirtualJoystick } from "./VirtualJoystick";
@@ -40,12 +40,12 @@ export function PhaserGameCanvas({ level }: Props) {
   const [dialog, setDialog] = useState<string | null>(() =>
     useGameStore.getState().levelProgress[level.id]?.completed ? null : level.intro,
   );
-  const [toast, setToast] = useState<string | null>(null);
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const toastIdRef = useRef(0);
   const [paused, setPaused] = useState(false);
   const [nearby, setNearby] = useState<LevelObject | null>(null);
   const [sprinting, setSprinting] = useState(false);
   const [showHintModal, setShowHintModal] = useState(false);
-  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const controls = useGameStore((s) => s.controls);
   const difficulty = useGameStore((s) => s.difficulty);
@@ -129,11 +129,12 @@ export function PhaserGameCanvas({ level }: Props) {
       onNearby: (obj: LevelObject | null) => setNearby(obj),
       onPickUp: (obj: LevelObject) => {
         if (!obj.itemId) return;
-        pickUp(obj.itemId, obj.id, level.id);
+        const itemId = obj.itemId;
+        pickUp(itemId, obj.id, level.id);
         audio.playPickup(useGameStore.getState().muted ? 0 : useGameStore.getState().volume);
-        if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-        setToast(`${ITEMS[obj.itemId].emoji}  ${ITEMS[obj.itemId].name}`);
-        toastTimerRef.current = setTimeout(() => setToast(null), 1500);
+        const id = ++toastIdRef.current;
+        setToasts((prev) => [...prev, { id, text: `${ITEMS[itemId].emoji}  ${ITEMS[itemId].name}` }]);
+        setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 1500);
       },
       onTalk: (obj: LevelObject) => {
         setDialog(obj.message ?? "...");
@@ -250,7 +251,6 @@ export function PhaserGameCanvas({ level }: Props) {
     return () => {
       cancelled = true;
       if (saveTimer) clearInterval(saveTimer);
-      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
       sceneRef.current = null;
       game?.destroy(true);
       gameRef.current = null;
@@ -301,7 +301,7 @@ export function PhaserGameCanvas({ level }: Props) {
           always show at once and say the same thing twice. */}
 
       <DialogBox text={dialog} onClose={() => setDialog(null)} />
-      <Toast text={toast} />
+      <Toast items={toasts} />
       <PauseMenu open={paused} onResume={() => setPaused(false)} onRestart={restart} level={level} />
       <ControlsModal
         open={showHintModal}

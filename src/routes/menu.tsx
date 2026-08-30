@@ -156,11 +156,14 @@ function LevelCardItem({ level: l, isUnlocked, done, counts, statuses, delay }: 
         </Link>
         </Tilt3D>
       ) : (
-        <div
+        <motion.div
           role="img"
           aria-disabled="true"
           aria-label={`${l.title} (Zablokowany) - Odblokuj, ukończyć poprzedni poziom`}
-          className="block overflow-hidden rounded-3xl border border-border bg-card shadow-lg shadow-black/30">
+          whileHover={{ scale: 1.015 }}
+          whileTap={{ scale: 0.98 }}
+          transition={{ type: "spring", stiffness: 300, damping: 22 }}
+          className="group block overflow-hidden rounded-3xl border border-border bg-card shadow-lg shadow-black/30 cursor-not-allowed">
           <div className="relative aspect-[16/9] overflow-hidden bg-muted">
             {!imageLoaded && (
               <div className="absolute inset-0 animate-pulse bg-muted-foreground/20 z-10" />
@@ -170,7 +173,7 @@ function LevelCardItem({ level: l, isUnlocked, done, counts, statuses, delay }: 
               alt=""
               aria-hidden
               className={[
-                "h-full w-full object-cover opacity-25 blur-sm transition duration-700",
+                "h-full w-full object-cover opacity-25 blur-sm transition duration-700 group-hover:opacity-35",
                 imageLoaded ? "opacity-25" : "opacity-0"
               ].join(" ")}
               onLoad={() => setImageLoaded(true)}
@@ -180,7 +183,7 @@ function LevelCardItem({ level: l, isUnlocked, done, counts, statuses, delay }: 
             />
             <div className="absolute inset-0 bg-gradient-to-t from-card via-card/30 to-transparent" />
             <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-center">
+              <span className="text-center transition-transform duration-300 group-hover:scale-110">
                 <div className="text-4xl mb-2">🔒</div>
                 <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Zablokowane</div>
               </span>
@@ -190,11 +193,11 @@ function LevelCardItem({ level: l, isUnlocked, done, counts, statuses, delay }: 
             <div className="text-xs uppercase tracking-[0.25em] text-muted-foreground">Poziom {l.id}</div>
             <h3 className="mt-1 font-display text-2xl font-semibold">{l.title}</h3>
             <p className="text-sm text-muted-foreground">{l.subtitle}</p>
-            <div className="mt-3 rounded-xl border border-honey/20 bg-honey/5 px-3 py-2 text-[13px] text-honey/90">
+            <div className="mt-3 rounded-xl border border-honey/20 bg-honey/5 px-3 py-2 text-[13px] text-honey/90 transition-colors duration-300 group-hover:bg-honey/10 group-hover:border-honey/30">
               <span className="mr-1">🔑</span>{l.unlockHint}
             </div>
           </div>
-        </div>
+        </motion.div>
       )}
     </motion.div>
   );

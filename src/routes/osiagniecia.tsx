@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
 import { LEVELS } from "@/game/levels";
 import { useGameStore } from "@/store/gameStore";
 import { computeQuests, questCompletion } from "@/game/questUtils";
@@ -177,6 +178,26 @@ function AchievementsPage() {
 
   const unlockedCount = ACHIEVEMENTS.filter((a) => a.progress(ctx) >= 1).length;
 
+  // Track "just unlocked" badges to flash them once, right after this page mounts
+  // with new progress — not on every render, and not on first load if already unlocked.
+  const prevUnlockedRef = useRef<Set<string> | null>(null);
+  const [justUnlocked, setJustUnlocked] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    const nowUnlocked = new Set(ACHIEVEMENTS.filter((a) => a.progress(ctx) >= 1).map((a) => a.id));
+    if (prevUnlockedRef.current) {
+      const fresh = [...nowUnlocked].filter((id) => !prevUnlockedRef.current!.has(id));
+      prevUnlockedRef.current = nowUnlocked;
+      if (fresh.length) {
+        setJustUnlocked(new Set(fresh));
+        const t = setTimeout(() => setJustUnlocked(new Set()), 2200);
+        return () => clearTimeout(t);
+      }
+      return;
+    }
+    prevUnlockedRef.current = nowUnlocked;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [levelProgress, talkedNpcs, controls]);
+
   return (
     <main className="min-h-[100dvh] px-6 py-16">
       <div className="mx-auto max-w-4xl">
@@ -207,12 +228,25 @@ function AchievementsPage() {
             {ACHIEVEMENTS.map((ach, i) => {
               const progress = Math.min(1, ach.progress(ctx));
               const unlocked = progress >= 1;
+              const flash = justUnlocked.has(ach.id);
               return (
                 <motion.div
                   key={ach.id}
                   initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: i * 0.05 }}
+                  animate={
+                    flash
+                      ? {
+                          opacity: 1,
+                          scale: [1, 1.06, 1],
+                          boxShadow: [
+                            "0 0 0 rgba(255,205,102,0)",
+                            "0 0 24px rgba(255,205,102,0.6)",
+                            "0 0 0 rgba(255,205,102,0)",
+                          ],
+                        }
+                      : { opacity: 1, scale: 1 }
+                  }
+                  transition={flash ? { duration: 1.4 } : { delay: i * 0.05 }}
                   className={[
                     "group relative overflow-hidden rounded-2xl border p-5 backdrop-blur transition",
                     unlocked
@@ -220,6 +254,18 @@ function AchievementsPage() {
                       : "border-white/5 bg-card/30",
                   ].join(" ")}
                 >
+                  <AnimatePresence>
+                    {flash && (
+                      <motion.span
+                        initial={{ opacity: 0, y: -6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute right-3 top-3 rounded-full bg-honey px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-background"
+                      >
+                        Nowe!
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
                   <div
                     className={[
                       "text-4xl mb-3 transition",
@@ -245,9 +291,11 @@ function AchievementsPage() {
                   ) : (
                     <div className="mt-3 space-y-1.5">
                       <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
-                        <div
-                          className="h-full rounded-full bg-honey/60 transition-[width]"
-                          style={{ width: `${Math.round(progress * 100)}%` }}
+                        <motion.div
+                          className="h-full rounded-full bg-honey/60"
+                          initial={false}
+                          animate={{ width: `${Math.round(progress * 100)}%` }}
+                          transition={{ type: "spring", stiffness: 120, damping: 20 }}
                         />
                       </div>
                       <p className="text-[11px] text-muted-foreground/80">{ach.hint(ctx)}</p>

@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { motion } from "framer-motion";
 import { useState } from "react";
 import { TIER_ORDER, tierStyle } from "@/game/tierStyle";
 import { GOAL_PROXIMITY, PROXIMITY_SCALE_RANGE, type GoalArchetype } from "@/game/proximity";
@@ -44,9 +45,16 @@ function SettingsPage() {
         <h1 className="mt-6 font-display text-5xl font-bold">Ustawienia</h1>
 
         {/* Difficulty */}
-        <section className="mt-10 space-y-4 rounded-3xl border border-border bg-card p-6">
+        <motion.section
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05, duration: 0.4 }}
+          className="mt-10 space-y-4 rounded-3xl border border-border bg-card p-6"
+        >
           <div>
-            <h2 className="font-display text-xl font-semibold">Poziom trudności</h2>
+            <h2 className="flex items-center gap-2 font-display text-xl font-semibold">
+              <span aria-hidden>🎚️</span>Poziom trudności
+            </h2>
             <p className="mt-1 text-xs text-muted-foreground">
               Wpływa na zużycie energii, siłę biegu i szkody od pszczół. Zmiana resetuje bieżący autozapis.
             </p>
@@ -81,7 +89,7 @@ function SettingsPage() {
               );
             })}
           </div>
-        </section>
+        </motion.section>
 
         <AlertDialog open={pendingDifficulty !== null} onOpenChange={(o) => !o && setPendingDifficulty(null)}>
           <AlertDialogContent>
@@ -107,9 +115,16 @@ function SettingsPage() {
         </AlertDialog>
 
         {/* Render quality (Phaser levels) */}
-        <section className="mt-10 space-y-4 rounded-3xl border border-border bg-card p-6">
+        <motion.section
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1, duration: 0.4 }}
+          className="mt-10 space-y-4 rounded-3xl border border-border bg-card p-6"
+        >
           <div>
-            <h2 className="font-display text-xl font-semibold">Jakość grafiki</h2>
+            <h2 className="flex items-center gap-2 font-display text-xl font-semibold">
+              <span aria-hidden>🖼️</span>Jakość grafiki
+            </h2>
             <p className="mt-1 text-xs text-muted-foreground">
               Steruje gęstością cząstek, świateł i efektów kamery. Obniż na słabszym urządzeniu.
             </p>
@@ -134,10 +149,17 @@ function SettingsPage() {
               );
             })}
           </div>
-        </section>
+        </motion.section>
 
-        <section className="mt-10 space-y-6 rounded-3xl border border-border bg-card p-6">
-          <h2 className="font-display text-xl font-semibold">Dźwięk</h2>
+        <motion.section
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15, duration: 0.4 }}
+          className="mt-10 space-y-6 rounded-3xl border border-border bg-card p-6"
+        >
+          <h2 className="flex items-center gap-2 font-display text-xl font-semibold">
+            <span aria-hidden>🔊</span>Dźwięk
+          </h2>
           <div>
             <label className="flex items-center justify-between text-sm font-medium">
               Głośność
@@ -161,12 +183,19 @@ function SettingsPage() {
               onCheckedChange={setMuted}
             />
           </div>
-        </section>
+        </motion.section>
 
         {/* Controls */}
-        <section className="mt-6 space-y-6 rounded-3xl border border-border bg-card p-6">
+        <motion.section
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.4 }}
+          className="mt-6 space-y-6 rounded-3xl border border-border bg-card p-6"
+        >
           <div className="flex items-center justify-between">
-            <h2 className="font-display text-xl font-semibold">Sterowanie</h2>
+            <h2 className="flex items-center gap-2 font-display text-xl font-semibold">
+              <span aria-hidden>🎮</span>Sterowanie
+            </h2>
             <AlertDialog>
               <AlertDialogTrigger className="text-xs text-muted-foreground underline-offset-2 transition hover:text-foreground hover:underline">
                 Przywróć domyślne
@@ -420,11 +449,15 @@ function SettingsPage() {
               </div>
             </>
           )}
-        </section>
-
+        </motion.section>
 
         {/* Progress */}
-        <section className="mt-6 rounded-3xl border border-border bg-card p-6">
+        <motion.section
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25, duration: 0.4 }}
+          className="mt-6 rounded-3xl border border-border bg-card p-6"
+        >
           <AlertDialog>
             <AlertDialogTrigger className="w-full rounded-2xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm font-semibold text-destructive transition hover:bg-destructive/20">
               Zresetuj postęp gry
@@ -450,7 +483,7 @@ function SettingsPage() {
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
-        </section>
+        </motion.section>
       </div>
     </main>
   );

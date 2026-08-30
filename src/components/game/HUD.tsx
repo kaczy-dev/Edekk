@@ -257,26 +257,39 @@ export function HUD({ level, onPause, sprinting, getCatPos, onShowControls }: Pr
           <motion.div
             className="absolute inset-y-0 left-0 rounded-full"
             style={{
-              background:
-                energy < 30
-                  ? `linear-gradient(90deg, #dc2626, #ef4444)`
-                  : sprinting
-                    ? `linear-gradient(90deg, #ff8a5b, var(--color-honey))`
-                    : `linear-gradient(90deg, var(--color-amber), var(--color-honey))`,
+              background: sprinting
+                ? `linear-gradient(90deg, #ff8a5b, var(--color-honey))`
+                : `linear-gradient(90deg, var(--color-amber), var(--color-honey))`,
             }}
             animate={{ width: `${energy}%` }}
             transition={{ type: "spring", stiffness: 80, damping: 20 }}
+          />
+          <motion.div
+            className="absolute inset-y-0 left-0 rounded-full"
+            style={{ background: `linear-gradient(90deg, #dc2626, #ef4444)` }}
+            animate={{ width: `${energy}%`, opacity: energy < 30 ? 1 : 0 }}
+            transition={{
+              width: { type: "spring", stiffness: 80, damping: 20 },
+              opacity: { duration: 0.6 },
+            }}
           />
         </div>
         <div className="mt-1 flex items-center justify-between px-2 text-[10px] uppercase tracking-widest text-white/60">
           <span className={energy < 30 ? "text-red-400 font-semibold" : ""}>
             Energia · {Math.round(energy)}
           </span>
-          {energy < 30 && (
-            <span className="rounded-full bg-red-500/20 px-2 py-0.5 text-[9px] font-bold text-red-400 animate-pulse">
-              Zmęczenie
-            </span>
-          )}
+          <AnimatePresence>
+            {energy < 30 && (
+              <motion.span
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                className="rounded-full bg-red-500/20 px-2 py-0.5 text-[9px] font-bold text-red-400 animate-pulse"
+              >
+                Zmęczenie
+              </motion.span>
+            )}
+          </AnimatePresence>
           {sprinting && energy >= 30 && (
             <span className="rounded-full bg-honey/20 px-2 py-0.5 text-[9px] font-bold text-honey">
               BIEG
