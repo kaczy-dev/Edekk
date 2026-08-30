@@ -127,6 +127,14 @@ export class LevelScene extends Phaser.Scene {
   private objSprites = new Map<string, Phaser.GameObjects.Text>();
   private interactIcon!: Phaser.GameObjects.Text;
 
+  // --- NPC patrol: simple back-and-forth walk for `npc` objects that opt in
+  //     via `LevelObject.patrol`. Keyed by object id; static NPCs (the
+  //     common case) never get an entry and are untouched. -----------------
+  private patrolState = new Map<
+    string,
+    { baseX: number; y: number; dir: 1 | -1; speed: number; range: number }
+  >();
+
   // --- Camera ------------------------------------------------------------
   private baseZoom = 1;
   private zoomTween?: Phaser.Tweens.Tween;
@@ -273,6 +281,16 @@ export class LevelScene extends Phaser.Scene {
       text.setDepth(obj.rect.y + obj.rect.h);
       this.objSprites.set(obj.id, text);
 
+      if (obj.kind === "npc" && obj.patrol) {
+        this.patrolState.set(obj.id, {
+          baseX: obj.rect.x + obj.rect.w / 2,
+          y: obj.rect.y + obj.rect.h / 2,
+          dir: 1,
+          speed: obj.patrol.speed ?? 30,
+          range: obj.patrol.range,
+        });
+      }
+
       const zone = this.add.zone(
         obj.rect.x + obj.rect.w / 2,
         obj.rect.y + obj.rect.h / 2,
@@ -364,6 +382,21 @@ export class LevelScene extends Phaser.Scene {
     this.hopReadyGlow.setScale(0.35);
     this.hopReadyGlow.setAlpha(0);
     this.hopReadyGlow.setDepth(2);
+
+    // Fade in from black instead of the world popping into view on a hard
+    // cut — a full-screen, screen-fixed rectangle that tweens itself away.
+    const fade = this.add
+      .rectangle(0, 0, this.scale.width, this.scale.height, 0x000000, 1)
+      .setOrigin(0, 0)
+      .setScrollFactor(0)
+      .setDepth(1_000_000);
+    this.tweens.add({
+      targets: fade,
+      alpha: 0,
+      duration: 500,
+      ease: "Sine.easeOut",
+      onComplete: () => fade.destroy(),
+    });
 
     this.onReady(this);
   }
@@ -635,7 +668,12 @@ export class LevelScene extends Phaser.Scene {
   private spawnDust(x: number, y: number, count: number) {
     // Halve particle counts below "high" — dust is frequent (every footstep)
     // so its cost adds up fastest of all the optional layers.
-    const n = this.renderQuality === "low" ? 0 : this.renderQuality === "medium" ? Math.ceil(count / 2) : count;
+    const n =
+      this.renderQuality === "low"
+        ? 0
+        : this.renderQuality === "medium"
+          ? Math.ceil(count / 2)
+          : count;
     if (n > 0) this.dust.explode(n, x, y);
   }
 
@@ -644,6 +682,10 @@ export class LevelScene extends Phaser.Scene {
     this.collectedIds.add(obj.id);
     this.objSprites.get(obj.id)?.destroy();
     this.objSprites.delete(obj.id);
+    // A small camera punch on pickup — reuses the same zoom hook the React
+    // side uses for dialogue opens, scaled down so frequent item pickups
+    // don't feel as heavy as a dialogue beat.
+    this.pulseZoom(1.03, 160);
     this.levelEvents.onPickUp(obj);
   }
 
@@ -900,6 +942,7 @@ export class LevelScene extends Phaser.Scene {
     const targetGlowAlpha = hopReady ? 0.22 + Math.sin(time * 0.004) * 0.08 : 0;
     this.hopReadyGlow.setAlpha(Phaser.Math.Linear(this.hopReadyGlow.alpha, targetGlowAlpha, 0.15));
 
+    this.updatePatrols(dt);
     this.updateNearest();
     if (this.interactPressed) {
       this.interactPressed = false;
@@ -940,13 +983,40 @@ export class LevelScene extends Phaser.Scene {
     this.spawnDust(this.cat.x, this.cat.y + this.cat.displayHeight * 0.32, 8);
   }
 
+  /**
+   * Moves each patrolling NPC's text sprite back and forth around its spawn
+   * point, flipping direction (and mirroring the sprite, dungeon `bat.js`
+   * style) at each end of its range instead of standing frozen in place.
+   */
+  private updatePatrols(dt: number) {
+    if (this.patrolState.size === 0) return;
+    for (const [id, p] of this.patrolState) {
+      const text = this.objSprites.get(id);
+      if (!text) continue; // collected/removed mid-level (shouldn't happen for NPCs, but stay safe)
+      const half = p.range / 2;
+      let nextX = text.x + p.dir * p.speed * dt;
+      if (nextX >= p.baseX + half) {
+        nextX = p.baseX + half;
+        p.dir = -1;
+      } else if (nextX <= p.baseX - half) {
+        nextX = p.baseX - half;
+        p.dir = 1;
+      }
+      text.setX(nextX);
+      text.setScale(p.dir, 1);
+    }
+  }
+
   private updateNearest() {
     const INTERACT_RADIUS = 100;
     let best: LevelObject | null = null;
     let bestDist = Infinity;
     for (const obj of this.level.objects) {
       if (obj.kind !== "npc" && obj.kind !== "goal") continue;
-      const cx = obj.rect.x + obj.rect.w / 2;
+      const patrol = this.patrolState.get(obj.id);
+      const cx = patrol
+        ? (this.objSprites.get(obj.id)?.x ?? obj.rect.x + obj.rect.w / 2)
+        : obj.rect.x + obj.rect.w / 2;
       const cy = obj.rect.y + obj.rect.h / 2;
       const d = Phaser.Math.Distance.Between(this.cat.x, this.cat.y, cx, cy);
       if (d < INTERACT_RADIUS && d < bestDist) {

@@ -123,6 +123,7 @@ export const LEVELS: LevelDef[] = [
         icon: "🐿️",
         rect: { x: 450, y: 440, w: 80, h: 80 },
         message: "Cześć Edku! Weź ten kłębek — przyda Ci się.",
+        patrol: { range: 140, speed: 26 },
       },
       {
         id: "i-photo",
@@ -289,6 +290,7 @@ export const LEVELS: LevelDef[] = [
         icon: "🐦",
         rect: { x: 1000, y: 450, w: 70, h: 70 },
         message: "Gruchanie! Gołąb podaje Edkowi błyszczące piórko.",
+        patrol: { range: 180, speed: 34 },
       },
       {
         id: "i-photo",

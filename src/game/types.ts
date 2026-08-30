@@ -37,6 +37,12 @@ export interface LevelObject {
   collected?: boolean;
   /** for danger triggers in garden */
   danger?: boolean;
+  /**
+   * Optional horizontal patrol for `npc` objects: walks back and forth
+   * `range` px around the object's own rect center, turning at each end.
+   * Omitting it keeps the NPC static, exactly as before this field existed.
+   */
+  patrol?: { range: number; speed?: number };
 }
 
 export type QuestStep =
