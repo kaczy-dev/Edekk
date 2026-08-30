@@ -26,23 +26,29 @@ function MenuPage() {
     <main className="min-h-[100dvh] px-6 py-16 md:py-24">
       <div className="mx-auto max-w-5xl">
         <div className="flex items-center justify-between gap-2">
-          <Link to="/" className="rounded-full border border-border bg-card/60 px-4 py-2 text-sm font-medium text-foreground backdrop-blur transition hover:bg-card">← Tytuł</Link>
+          <Link to="/" className="rounded-full border border-border bg-card/60 px-4 py-2 text-sm font-medium text-foreground backdrop-blur transition hover:bg-card active:scale-95">← Tytuł</Link>
           <div className="flex gap-2">
-            <Link to="/osiagniecia" className="rounded-full border border-border bg-card/60 px-4 py-2 text-sm font-medium text-foreground backdrop-blur transition hover:bg-card">Osiągnięcia</Link>
-            <Link to="/ustawienia" className="rounded-full border border-border bg-card/60 px-4 py-2 text-sm font-medium text-foreground backdrop-blur transition hover:bg-card">Ustawienia</Link>
+            <Link to="/osiagniecia" className="rounded-full border border-border bg-card/60 px-4 py-2 text-sm font-medium text-foreground backdrop-blur transition hover:bg-card active:scale-95">Osiągnięcia</Link>
+            <Link to="/ustawienia" className="rounded-full border border-border bg-card/60 px-4 py-2 text-sm font-medium text-foreground backdrop-blur transition hover:bg-card active:scale-95">Ustawienia</Link>
           </div>
         </div>
 
         <motion.h1
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: [0.2, 0.8, 0.2, 1] }}
           className="mt-6 font-display text-5xl font-bold md:text-6xl"
         >
           Dziennik wypraw
         </motion.h1>
-        <p className="mt-2 max-w-xl text-muted-foreground">
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.1 }}
+          className="mt-2 max-w-xl text-muted-foreground"
+        >
           Każdy świat ma swoje zadania. Ukończ wszystkie, aby otworzyć kolejne drzwi przed Edkiem.
-        </p>
+        </motion.p>
 
         <div className="mt-10 grid gap-4 md:grid-cols-2">
           {LEVELS.map((l, i) => {
@@ -64,7 +70,7 @@ function MenuPage() {
                 key={l.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.08 }}
+                transition={{ delay: i * 0.08, duration: 0.5, ease: [0.2, 0.8, 0.2, 1] }}
               >
                 {isUnlocked ? (
                   <Tilt3D className="h-full" intensity={7} lift={18}>

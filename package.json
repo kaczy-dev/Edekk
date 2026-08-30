@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
     "format": "prettier --write ."
   },
   "dependencies": {
@@ -54,6 +55,7 @@
     "howler": "^2.2.4",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.575.0",
+    "phaser": "^4.2.1",
     "react": "^19.2.0",
     "react-day-picker": "^9.14.0",
     "react-dom": "^19.2.0",
@@ -83,10 +85,12 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^15.15.0",
+    "jsdom": "^30.0.1",
     "nitro": "3.0.260603-beta",
     "prettier": "^3.7.3",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.56.1",
-    "vite": "^7.3.1"
+    "vite": "^7.3.1",
+    "vitest": "^4.1.11"
   }
 }

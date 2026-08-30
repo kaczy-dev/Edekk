@@ -2,7 +2,17 @@ export type Vec2 = { x: number; y: number };
 export type Rect = { x: number; y: number; w: number; h: number };
 
 export type ItemId =
-  | "bowl" | "ball" | "mouse" | "treat" | "key" | "chest" | "yarn" | "star" | "feather" | "leaf";
+  | "bowl"
+  | "ball"
+  | "mouse"
+  | "treat"
+  | "key"
+  | "chest"
+  | "yarn"
+  | "star"
+  | "feather"
+  | "leaf"
+  | "photo";
 
 export type ItemDef = {
   id: ItemId;
@@ -59,4 +69,3 @@ export interface LevelDef {
   /** Optional point light source in world space: { position, color, intensity } */
   pointLight?: { x: number; y: number; color: string; intensity: number };
 }
-

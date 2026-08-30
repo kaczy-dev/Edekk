@@ -12,12 +12,12 @@ export type LevelProgress = {
 export type SprintMode = "hold" | "toggle";
 export type JoystickSide = "left" | "right";
 export type TouchControl = "stick" | "dpad";
-export type Difficulty = "easy" | "medium" | "hard";
+export type Difficulty = "easy" | "medium" | "hard" | "explorer";
 export type ArrowAnimation = "smooth" | "snap" | "off";
 
 export interface ControlSettings {
-  sensitivity: number;       // 0.5 .. 1.5 — multiplier on max speed
-  sprintMode: SprintMode;    // hold Shift vs toggle
+  sensitivity: number; // 0.5 .. 1.5 — multiplier on max speed
+  sprintMode: SprintMode; // hold Shift vs toggle
   joystickSide: JoystickSide;
   touchControl: TouchControl; // analog stick vs D-pad
   invertY: boolean;
@@ -39,20 +39,50 @@ export interface ControlSettings {
   legendExpanded: boolean;
 }
 
-
 export interface DifficultyConfig {
   label: string;
   startEnergy: number;
   sprintDrainMul: number;
   restRecoverMul: number;
-  dangerDamage: number;      // energy lost per bee hit
+  dangerDamage: number; // energy lost per bee hit
   minSprintEnergy: number;
 }
 
 export const DIFFICULTIES: Record<Difficulty, DifficultyConfig> = {
-  easy:   { label: "Łatwy",  startEnergy: 100, sprintDrainMul: 0.55, restRecoverMul: 1.5, dangerDamage: 5,  minSprintEnergy: 4 },
-  medium: { label: "Średni", startEnergy: 100, sprintDrainMul: 1.0,  restRecoverMul: 1.0, dangerDamage: 10, minSprintEnergy: 8 },
-  hard:   { label: "Trudny", startEnergy: 80,  sprintDrainMul: 1.6,  restRecoverMul: 0.7, dangerDamage: 18, minSprintEnergy: 16 },
+  easy: {
+    label: "Łatwy",
+    startEnergy: 100,
+    sprintDrainMul: 0.55,
+    restRecoverMul: 1.5,
+    dangerDamage: 5,
+    minSprintEnergy: 4,
+  },
+  medium: {
+    label: "Średni",
+    startEnergy: 100,
+    sprintDrainMul: 1.0,
+    restRecoverMul: 1.0,
+    dangerDamage: 10,
+    minSprintEnergy: 8,
+  },
+  hard: {
+    label: "Trudny",
+    startEnergy: 80,
+    sprintDrainMul: 1.6,
+    restRecoverMul: 0.7,
+    dangerDamage: 18,
+    minSprintEnergy: 16,
+  },
+  // Casual/young-player mode: energy never meaningfully drains (0 drain, 0 danger
+  // damage) so sprinting and bee stings never gate progress — pure exploration.
+  explorer: {
+    label: "Eksploracja",
+    startEnergy: 100,
+    sprintDrainMul: 0,
+    restRecoverMul: 1,
+    dangerDamage: 0,
+    minSprintEnergy: 0,
+  },
 };
 
 export const DEFAULT_CONTROLS: ControlSettings = {
@@ -109,6 +139,16 @@ interface GameState {
   save: SaveSlot | null;
   /** Tutorial progression (0 = not started, 1-4 = active step, 5 = complete) */
   tutorialStage: number;
+  /** Wall-clock ms when the current level attempt started (speedrun timer). Null when not in a level. */
+  levelStartedAt: number | null;
+  /** Best (lowest) completion time per level, in ms — a simple client-side speedrun record. */
+  bestLevelTimes: Record<string, number>;
+  /** Lifetime hop count and world-px walked — currently only instrumented by the
+   *  Phaser engine (Level 1), since that's the only engine with a hop action and
+   *  the only one wired to report movement deltas. Levels on the legacy Canvas2D
+   *  engine don't add to these yet. */
+  totalHops: number;
+  totalDistanceWalked: number;
 
   // actions
   setVolume: (v: number) => void;
@@ -127,8 +167,9 @@ interface GameState {
   clearSave: () => void;
   resetProgress: () => void;
   setTutorialStage: (stage: number) => void;
+  recordHop: () => void;
+  addDistance: (px: number) => void;
 }
-
 
 export const useGameStore = create<GameState>()(
   persist(
@@ -140,6 +181,13 @@ export const useGameStore = create<GameState>()(
       ...INITIAL_PROGRESS,
       energy: DIFFICULTIES.medium.startEnergy,
       tutorialStage: 0,
+      levelStartedAt: null,
+      bestLevelTimes: {},
+      totalHops: 0,
+      totalDistanceWalked: 0,
+
+      recordHop: () => set({ totalHops: get().totalHops + 1 }),
+      addDistance: (px) => set({ totalDistanceWalked: get().totalDistanceWalked + px }),
 
       setVolume: (v) => set({ volume: Math.max(0, Math.min(1, v)) }),
       setMuted: (m) => set({ muted: m }),
@@ -154,13 +202,17 @@ export const useGameStore = create<GameState>()(
         const inventory = level ? inventoryFromCollected(level, existing.itemsCollected) : {};
         const prevTalked = state.talkedNpcs[id] ?? [];
         const startEnergy = DIFFICULTIES[state.difficulty].startEnergy;
-        const resumeEnergy = opts?.resume && state.save?.levelId === id ? state.save.energy : startEnergy;
+        const resumeEnergy =
+          opts?.resume && state.save?.levelId === id ? state.save.energy : startEnergy;
 
         set({
           inventory,
           energy: resumeEnergy,
           talkedNpcs: { ...state.talkedNpcs, [id]: prevTalked },
           levelProgress: { ...state.levelProgress, [id]: existing },
+          // A resumed run keeps its original start time (the timer already
+          // running counts real elapsed time); a fresh attempt resets it.
+          levelStartedAt: opts?.resume && state.levelStartedAt ? state.levelStartedAt : Date.now(),
         });
       },
 
@@ -190,11 +242,20 @@ export const useGameStore = create<GameState>()(
       completeLevel: (id, nextId) => {
         const state = get();
         const lp = state.levelProgress[id] ?? { completed: false, itemsCollected: [] };
+        const elapsed = state.levelStartedAt ? Date.now() - state.levelStartedAt : null;
+        const prevBest = state.bestLevelTimes[id];
+        const bestLevelTimes =
+          elapsed !== null && (prevBest === undefined || elapsed < prevBest)
+            ? { ...state.bestLevelTimes, [id]: elapsed }
+            : state.bestLevelTimes;
         set({
           levelProgress: { ...state.levelProgress, [id]: { ...lp, completed: true } },
-          unlockedLevels: nextId && !state.unlockedLevels.includes(nextId)
-            ? [...state.unlockedLevels, nextId]
-            : state.unlockedLevels,
+          unlockedLevels:
+            nextId && !state.unlockedLevels.includes(nextId)
+              ? [...state.unlockedLevels, nextId]
+              : state.unlockedLevels,
+          bestLevelTimes,
+          levelStartedAt: null,
         });
       },
 
@@ -206,11 +267,14 @@ export const useGameStore = create<GameState>()(
       clearSave: () => set({ save: null }),
       setTutorialStage: (stage) => set({ tutorialStage: stage }),
 
-      resetProgress: () => set({
-        ...INITIAL_PROGRESS,
-        energy: DIFFICULTIES[get().difficulty].startEnergy,
-        tutorialStage: 0,
-      }),
+      resetProgress: () =>
+        set({
+          ...INITIAL_PROGRESS,
+          energy: DIFFICULTIES[get().difficulty].startEnergy,
+          tutorialStage: 0,
+          levelStartedAt: null,
+          bestLevelTimes: {},
+        }),
     }),
     {
       name: "edek-game-v1",
@@ -228,6 +292,9 @@ export const useGameStore = create<GameState>()(
         unlockedLevels: s.unlockedLevels,
         talkedNpcs: s.talkedNpcs,
         save: s.save,
+        bestLevelTimes: s.bestLevelTimes,
+        totalHops: s.totalHops,
+        totalDistanceWalked: s.totalDistanceWalked,
       }),
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<GameState>;
@@ -237,6 +304,6 @@ export const useGameStore = create<GameState>()(
           controls: { ...DEFAULT_CONTROLS, ...(p.controls ?? {}) },
         };
       },
-    }
-  )
+    },
+  ),
 );

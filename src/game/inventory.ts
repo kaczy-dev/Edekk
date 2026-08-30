@@ -8,6 +8,7 @@ import type { ItemId, LevelDef } from "./types";
 export const NPC_GIFTS: Record<string, ItemId> = {
   squirrel: "yarn",
   pigeon: "feather",
+  kot: "key",
 };
 
 const GIFT_SUFFIX = "-gift";
@@ -27,7 +28,7 @@ function collectedItemId(level: LevelDef, objId: string): ItemId | undefined {
 /** Rebuild a level-run inventory from the object ids recorded as collected. */
 export function inventoryFromCollected(
   level: LevelDef,
-  collectedIds: string[]
+  collectedIds: string[],
 ): Partial<Record<ItemId, number>> {
   const inventory: Partial<Record<ItemId, number>> = {};
   for (const objId of collectedIds) {

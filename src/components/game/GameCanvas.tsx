@@ -29,7 +29,11 @@ export function GameCanvas({ level }: Props) {
   const engineRef = useRef<GameEngine | null>(null);
   const navigate = useNavigate();
 
-  const [dialog, setDialog] = useState<string | null>(level.intro);
+  // Levels already cleared skip the narrated intro — the player has read it,
+  // replaying it every time they revisit a finished level just adds a click.
+  const [dialog, setDialog] = useState<string | null>(() =>
+    useGameStore.getState().levelProgress[level.id]?.completed ? null : level.intro
+  );
   const [toast, setToast] = useState<string | null>(null);
   const [saveIndicator, setSaveIndicator] = useState(false);
   const [paused, setPaused] = useState(false);
@@ -452,7 +456,7 @@ export function GameCanvas({ level }: Props) {
         )}
       </AnimatePresence>
 
-      <PauseMenu open={paused} onResume={() => setPaused(false)} onRestart={restart} />
+      <PauseMenu open={paused} onResume={() => setPaused(false)} onRestart={restart} level={level} />
 
       {controls.touchControl === "dpad" ? (
         <DPad

@@ -8,7 +8,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-
 /** Stable fallback so absent store entries keep one reference across selector calls. */
 const NO_IDS: string[] = [];
 
@@ -27,6 +26,8 @@ export function HUD({ level, onPause, sprinting, getCatPos, onShowControls }: Pr
   const completed = useGameStore((s) => s.levelProgress[level.id]?.completed ?? false);
   const collected = useGameStore((s) => s.levelProgress[level.id]?.itemsCollected ?? NO_IDS);
   const difficulty = useGameStore((s) => s.difficulty);
+  const levelStartedAt = useGameStore((s) => s.levelStartedAt);
+  const bestTime = useGameStore((s) => s.bestLevelTimes[level.id]);
   const goalIndicators = useGameStore((s) => s.controls.goalIndicators);
   const colorBlind = useGameStore((s) => s.controls.colorBlindMode);
   const legendAutoCollapseSec = useGameStore((s) => s.controls.legendAutoCollapseSec);
@@ -35,7 +36,6 @@ export function HUD({ level, onPause, sprinting, getCatPos, onShowControls }: Pr
   const [open, setOpen] = useState(true);
   const [expandedQuest, setExpandedQuest] = useState<string | null>(null);
   const [onlyActive, setOnlyActive] = useState(false);
-
 
   // Auto-collapse the legend after a configurable grace period (0 = never).
   // Manual toggling cancels the timer for this session and is persisted.
@@ -48,9 +48,19 @@ export function HUD({ level, onPause, sprinting, getCatPos, onShowControls }: Pr
     return () => clearTimeout(t);
   }, [goalIndicators, legendAutoCollapseSec, legendExpanded, setControls]);
 
+  // Speedrun timer: a 1s tick is plenty for a readable clock and avoids
+  // re-rendering the whole HUD every frame for a number nobody needs to the ms.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!levelStartedAt) return;
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [levelStartedAt]);
+  const elapsedMs = levelStartedAt ? now - levelStartedAt : 0;
+
   const statuses = useMemo(
     () => computeQuests(level, { inventory, talked, levelCompleted: completed, collected }),
-    [level, inventory, talked, completed, collected]
+    [level, inventory, talked, completed, collected],
   );
   const { done, total } = questCompletion(statuses);
   const allDone = done === total;
@@ -62,7 +72,9 @@ export function HUD({ level, onPause, sprinting, getCatPos, onShowControls }: Pr
     const prev = prevDoneRef.current;
     const nowDone = new Set(statuses.filter((s) => s.done).map((s) => s.quest.id));
     const justDone: string[] = [];
-    nowDone.forEach((id) => { if (!prev.has(id)) justDone.push(id); });
+    nowDone.forEach((id) => {
+      if (!prev.has(id)) justDone.push(id);
+    });
     prevDoneRef.current = nowDone;
     if (!justDone.length) return;
     setFlashIds(new Set(justDone));
@@ -95,11 +107,32 @@ export function HUD({ level, onPause, sprinting, getCatPos, onShowControls }: Pr
             aria-expanded={open}
           >
             <div className="min-w-0">
-              <h2 className="font-display text-base font-semibold text-honey md:text-lg truncate">{level.title}</h2>
+              <h2 className="font-display text-base font-semibold text-honey md:text-lg truncate">
+                {level.title}
+              </h2>
               <p className="text-[11px] uppercase tracking-widest text-white/50">
                 Zadania {done}/{total}
                 <span className="mx-1.5 text-white/30">·</span>
                 <span className="text-honey/80">{DIFFICULTIES[difficulty].label}</span>
+                {levelStartedAt && (
+                  <>
+                    <span className="mx-1.5 text-white/30">·</span>
+                    {/* Green while still ahead of the standing best time — a live
+                        "you're on pace for a record" cue, not just a plain clock. */}
+                    <span
+                      className={[
+                        "tabular-nums",
+                        bestTime && elapsedMs < bestTime
+                          ? "font-semibold text-green-400"
+                          : "text-white/70",
+                      ].join(" ")}
+                      title={bestTime ? `Najlepszy czas: ${formatElapsed(bestTime)}` : undefined}
+                    >
+                      ⏱ {formatElapsed(elapsedMs)}
+                      {bestTime !== undefined && elapsedMs < bestTime && " 🏆"}
+                    </span>
+                  </>
+                )}
                 {allDone && (
                   <span className="ml-2 rounded-full bg-honey/20 px-1.5 py-[1px] text-[9px] font-bold text-honey">
                     Wszystko!
@@ -132,7 +165,10 @@ export function HUD({ level, onPause, sprinting, getCatPos, onShowControls }: Pr
                     {onlyActive ? "Tylko aktywne" : "Wszystkie"}
                   </span>
                   <button
-                    onClick={(e) => { e.stopPropagation(); setOnlyActive((v) => !v); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setOnlyActive((v) => !v);
+                    }}
                     aria-pressed={onlyActive}
                     className={[
                       "rounded-full border px-2 py-[2px] text-[10px] font-semibold uppercase tracking-wider transition",
@@ -179,7 +215,7 @@ export function HUD({ level, onPause, sprinting, getCatPos, onShowControls }: Pr
                 <TooltipTrigger asChild>
                   <button
                     onClick={onShowControls}
-                    className="pointer-events-auto rounded-full border border-white/15 bg-black/45 px-3 py-2 text-sm font-medium text-white/70 backdrop-blur-md transition hover:bg-black/60 hover:text-white"
+                    className="pointer-events-auto rounded-full border border-white/15 bg-black/45 px-3 py-2 text-sm font-medium text-white/70 backdrop-blur-md transition hover:bg-black/60 hover:text-white active:scale-95"
                     aria-label="Pokaż sterowanie"
                   >
                     ?
@@ -191,38 +227,47 @@ export function HUD({ level, onPause, sprinting, getCatPos, onShowControls }: Pr
           )}
           <button
             onClick={onPause}
-            className="pointer-events-auto rounded-full border border-white/15 bg-black/45 px-4 py-2 text-sm font-medium text-white backdrop-blur-md transition hover:bg-black/60"
+            className="pointer-events-auto rounded-full border border-white/15 bg-black/45 px-4 py-2 text-sm font-medium text-white backdrop-blur-md transition hover:bg-black/60 active:scale-95"
           >
             Pauza
           </button>
         </div>
       </div>
 
-      <div className={[
-        "mt-3 pointer-events-auto w-56 max-w-[60vw] rounded-2xl border bg-black/40 p-1.5 backdrop-blur-md transition",
-        energy < 30 ? "border-red-500/60 bg-red-950/20" : "border-white/10",
-      ].join(" ")}>
+      <div
+        className={[
+          "mt-3 pointer-events-auto w-56 max-w-[60vw] rounded-2xl border bg-black/40 p-1.5 backdrop-blur-md transition",
+          energy < 30 ? "border-red-500/60 bg-red-950/20" : "border-white/10",
+        ].join(" ")}
+      >
         <div className="relative h-3 overflow-hidden rounded-full bg-white/10">
           <motion.div
             className="absolute inset-y-0 left-0 rounded-full"
             style={{
-              background: energy < 30
-                ? `linear-gradient(90deg, #dc2626, #ef4444)`
-                : sprinting
-                ? `linear-gradient(90deg, #ff8a5b, var(--color-honey))`
-                : `linear-gradient(90deg, var(--color-amber), var(--color-honey))`,
+              background:
+                energy < 30
+                  ? `linear-gradient(90deg, #dc2626, #ef4444)`
+                  : sprinting
+                    ? `linear-gradient(90deg, #ff8a5b, var(--color-honey))`
+                    : `linear-gradient(90deg, var(--color-amber), var(--color-honey))`,
             }}
             animate={{ width: `${energy}%` }}
             transition={{ type: "spring", stiffness: 80, damping: 20 }}
           />
         </div>
         <div className="mt-1 flex items-center justify-between px-2 text-[10px] uppercase tracking-widest text-white/60">
-          <span className={energy < 30 ? "text-red-400 font-semibold" : ""}>Energia · {Math.round(energy)}</span>
+          <span className={energy < 30 ? "text-red-400 font-semibold" : ""}>
+            Energia · {Math.round(energy)}
+          </span>
           {energy < 30 && (
-            <span className="rounded-full bg-red-500/20 px-2 py-0.5 text-[9px] font-bold text-red-400 animate-pulse">Zmęczenie</span>
+            <span className="rounded-full bg-red-500/20 px-2 py-0.5 text-[9px] font-bold text-red-400 animate-pulse">
+              Zmęczenie
+            </span>
           )}
           {sprinting && energy >= 30 && (
-            <span className="rounded-full bg-honey/20 px-2 py-0.5 text-[9px] font-bold text-honey">BIEG</span>
+            <span className="rounded-full bg-honey/20 px-2 py-0.5 text-[9px] font-bold text-honey">
+              BIEG
+            </span>
           )}
         </div>
       </div>
@@ -309,7 +354,10 @@ export function HUD({ level, onPause, sprinting, getCatPos, onShowControls }: Pr
           const n = inventory[id] ?? 0;
           if (!n) return null;
           return (
-            <div key={id} className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-sm text-white">
+            <div
+              key={id}
+              className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-sm text-white"
+            >
               <span className="text-lg leading-none">{ITEMS[id].emoji}</span>
               <span className="font-semibold">×{n}</span>
             </div>
@@ -345,7 +393,17 @@ function QuestRow({
   return (
     <motion.li
       layout
-      animate={flash ? { backgroundColor: ["rgba(255,205,102,0)", "rgba(255,205,102,0.22)", "rgba(255,205,102,0)"] } : {}}
+      animate={
+        flash
+          ? {
+              backgroundColor: [
+                "rgba(255,205,102,0)",
+                "rgba(255,205,102,0.22)",
+                "rgba(255,205,102,0)",
+              ],
+            }
+          : {}
+      }
       transition={{ duration: 1.2 }}
       className="flex flex-col gap-1 rounded-md px-1 py-1"
     >
@@ -449,7 +507,8 @@ function DistanceBadge({ track, ready }: { track: GoalTrack; ready: boolean }) {
   const showArrow = useGameStore((s) => s.controls.goalIndicators);
   const reducedMotion = useGameStore((s) => s.controls.reducedMotion);
   const st = tierStyle(tier, colorBlind);
-  const tierLabel = tier === "at" ? "Tuż obok" : tier === "near" ? "Blisko" : tier === "mid" ? "Średnio" : "Daleko";
+  const tierLabel =
+    tier === "at" ? "Tuż obok" : tier === "near" ? "Blisko" : tier === "mid" ? "Średnio" : "Daleko";
   return (
     <span
       className={[
@@ -468,20 +527,24 @@ function DistanceBadge({ track, ready }: { track: GoalTrack; ready: boolean }) {
           aria-hidden
           className="inline-block text-[11px] leading-none"
           animate={{ rotate: (angle * 180) / Math.PI + 90 }}
-          transition={reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 140, damping: 18 }}
+          transition={
+            reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 140, damping: 18 }
+          }
         >
           ↑
         </motion.span>
       )}
-      {st.glyph && <span aria-hidden style={{ color: st.swatch }}>{st.glyph}</span>}
+      {st.glyph && (
+        <span aria-hidden style={{ color: st.swatch }}>
+          {st.glyph}
+        </span>
+      )}
       <span>{tierLabel}</span>
       <span className="text-white/50">·</span>
       <span>{tier === "at" ? `${Math.max(1, Math.round(at / 32))} kr.` : `${steps} kr.`}</span>
     </span>
   );
 }
-
-
 
 /** Legend marker: circle by default, distinct shapes in colour-blind mode. */
 function LegendSwatch({
@@ -508,4 +571,12 @@ function LegendSwatch({
       style={{ backgroundColor: color }}
     />
   );
+}
+
+/** mm:ss for the in-HUD speedrun clock — this game's runs are minutes, not hours. */
+function formatElapsed(ms: number): string {
+  const totalSec = Math.max(0, Math.floor(ms / 1000));
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
 }

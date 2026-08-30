@@ -54,7 +54,7 @@ interface Options {
 export function useGoalTracks(
   level: LevelDef,
   getCatPos: (() => Vec2 | null) | undefined,
-  options: Options = {}
+  options: Options = {},
 ): GoalTrack[] {
   const { enabled = true, onTierChange } = options;
   const inventory = useGameStore((s) => s.inventory);
@@ -72,22 +72,52 @@ export function useGoalTracks(
     });
     return statuses.flatMap((s) => {
       const quest = s.quest;
-      if (!isReachQuest(quest) || s.done) return [];
-      const goal = level.objects.find((o) => o.id === quest.objId);
-      if (!goal) return [];
-      const p = goalProximity(goal, proximityScale);
-      return [
-        {
-          id: s.quest.id,
-          ready: !!s.ready,
-          gx: goal.rect.x + goal.rect.w / 2,
-          gy: goal.rect.y + goal.rect.h / 2,
-          at: p.at,
-          near: p.near,
-          mid: p.mid,
-          goalLabel: p.profile.label,
-        },
-      ];
+      if (s.done) return [];
+
+      if (isReachQuest(quest)) {
+        const goal = level.objects.find((o) => o.id === quest.objId);
+        if (!goal) return [];
+        const p = goalProximity(goal, proximityScale);
+        return [
+          {
+            id: s.quest.id,
+            ready: !!s.ready,
+            points: [{ x: goal.rect.x + goal.rect.w / 2, y: goal.rect.y + goal.rect.h / 2 }],
+            at: p.at,
+            near: p.near,
+            mid: p.mid,
+            goalLabel: p.profile.label,
+          },
+        ];
+      }
+
+      if (quest.kind === "collect") {
+        // Point toward the *nearest* remaining instance of this item rather
+        // than a fixed spot — picked per-frame in the tick loop below, since
+        // "nearest" depends on the live cat position.
+        const remaining = level.objects.filter(
+          (o) => o.kind === "item" && o.itemId === quest.itemId && !collected.includes(o.id),
+        );
+        if (remaining.length === 0) return [];
+        const sample = remaining[0];
+        const p = goalProximity(sample, proximityScale);
+        return [
+          {
+            id: s.quest.id,
+            ready: false,
+            points: remaining.map((o) => ({
+              x: o.rect.x + o.rect.w / 2,
+              y: o.rect.y + o.rect.h / 2,
+            })),
+            at: p.at,
+            near: p.near,
+            mid: p.mid,
+            goalLabel: p.profile.label,
+          },
+        ];
+      }
+
+      return [];
     });
   }, [level, inventory, talked, completed, collected, proximityScale]);
 
@@ -123,8 +153,19 @@ export function useGoalTracks(
       const distK = 1 - Math.exp(-dt * DIST_RATE);
       const angleK = 1 - Math.exp(-dt * ANGLE_RATE);
       const next = goals.map((g): GoalTrack => {
-        const rawDist = Math.hypot(g.gx - pos.x, g.gy - pos.y);
-        const rawAngle = Math.atan2(g.gy - pos.y, g.gx - pos.x);
+        // Collect-quest goals carry every remaining instance; re-pick the
+        // nearest one each tick since "nearest" moves with the cat.
+        let nearest = g.points[0];
+        let nearestD = Infinity;
+        for (const pt of g.points) {
+          const d = Math.hypot(pt.x - pos.x, pt.y - pos.y);
+          if (d < nearestD) {
+            nearestD = d;
+            nearest = pt;
+          }
+        }
+        const rawDist = nearestD;
+        const rawAngle = Math.atan2(nearest.y - pos.y, nearest.x - pos.x);
         const prev = smoothRef.current.get(g.id);
         let dist = rawDist;
         let angle = rawAngle;
@@ -138,7 +179,19 @@ export function useGoalTracks(
           dist = prev.dist + (rawDist - prev.dist) * distK;
         }
         smoothRef.current.set(g.id, { dist, angle });
-        return { ...g, dist, angle, tier: tierFor(dist, g.at, g.near, g.mid) };
+        return {
+          id: g.id,
+          ready: g.ready,
+          at: g.at,
+          near: g.near,
+          mid: g.mid,
+          goalLabel: g.goalLabel,
+          gx: nearest.x,
+          gy: nearest.y,
+          dist,
+          angle,
+          tier: tierFor(dist, g.at, g.near, g.mid),
+        };
       });
 
       for (const track of next) {

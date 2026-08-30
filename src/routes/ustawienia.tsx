@@ -36,7 +36,7 @@ function SettingsPage() {
   return (
     <main className="min-h-[100dvh] px-6 py-16">
       <div className="mx-auto max-w-xl">
-        <Link to="/menu" className="text-sm text-muted-foreground transition hover:text-foreground">
+        <Link to="/menu" className="text-sm text-muted-foreground transition hover:text-foreground active:opacity-60">
           ← Menu
         </Link>
         <h1 className="mt-6 font-display text-5xl font-bold">Ustawienia</h1>
@@ -58,10 +58,10 @@ function SettingsPage() {
                   key={d}
                   onClick={() => setDifficulty(d)}
                   className={[
-                    "rounded-2xl border px-3 py-3 text-sm font-semibold transition text-left",
+                    "rounded-2xl border px-3 py-3 text-sm font-semibold transition text-left active:scale-[0.97]",
                     active
                       ? "border-honey bg-honey/15 text-foreground"
-                      : "border-border bg-muted/40 text-muted-foreground hover:text-foreground",
+                      : "border-border bg-muted/40 text-muted-foreground hover:text-foreground hover:border-honey/30",
                   ].join(" ")}
                 >
                   <div className="text-base">{cfg.label}</div>
