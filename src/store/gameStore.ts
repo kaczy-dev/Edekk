@@ -14,6 +14,8 @@ export type JoystickSide = "left" | "right";
 export type TouchControl = "stick" | "dpad";
 export type Difficulty = "easy" | "medium" | "hard" | "explorer";
 export type ArrowAnimation = "smooth" | "snap" | "off";
+/** Rendering density on the Phaser levels: how many particles/lights/post-FX passes run. */
+export type RenderQuality = "low" | "medium" | "high" | "ultra";
 
 export interface ControlSettings {
   sensitivity: number; // 0.5 .. 1.5 — multiplier on max speed
@@ -37,6 +39,8 @@ export interface ControlSettings {
   legendAutoCollapseSec: number;
   /** Persisted manual state of the HUD distance legend (expanded/collapsed). */
   legendExpanded: boolean;
+  /** Phaser rendering density preset — lower on weaker devices to cut particle/light/post-FX cost. */
+  renderQuality: RenderQuality;
 }
 
 export interface DifficultyConfig {
@@ -100,6 +104,7 @@ export const DEFAULT_CONTROLS: ControlSettings = {
   reducedMotion: false,
   legendAutoCollapseSec: 6.5,
   legendExpanded: true,
+  renderQuality: "high",
 };
 
 /** Upper bound of the energy bar; the HUD renders energy as a percentage of this. */

@@ -206,6 +206,7 @@ export function PhaserGameCanvas({ level }: Props) {
         initialPos,
         initialEnergy: useGameStore.getState().energy,
         difficulty: useGameStore.getState().difficulty,
+        renderQuality: useGameStore.getState().controls.renderQuality,
         onReady: (scene) => {
           if (cancelled) return;
           sceneRef.current = scene;

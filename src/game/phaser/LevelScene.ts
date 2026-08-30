@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import type { LevelDef, LevelObject, Vec2 } from "@/game/types";
 import { ITEMS } from "@/game/items";
-import { DIFFICULTIES, type Difficulty } from "@/store/gameStore";
+import { DIFFICULTIES, type Difficulty, type RenderQuality } from "@/store/gameStore";
 
 const WALK_SPEED = 230;
 const RUN_SPEED = 380;
@@ -71,6 +71,7 @@ export interface LevelSceneInit {
   initialPos?: Vec2;
   initialEnergy: number;
   difficulty: Difficulty;
+  renderQuality: RenderQuality;
   /**
    * Phaser's `SceneManager.add(..., autoStart: true)` does not return the
    * booted scene instance synchronously (boot is deferred to the next
@@ -105,6 +106,7 @@ export class LevelScene extends Phaser.Scene {
   paused = false;
   energy = 100;
   difficulty: Difficulty = "medium";
+  private renderQuality: RenderQuality = "high";
   touch: TouchVec = { x: 0, y: 0 };
   sprintToggled = false;
   touchSprint = false;
@@ -179,6 +181,7 @@ export class LevelScene extends Phaser.Scene {
     this.initialPos = data.initialPos;
     this.energy = data.initialEnergy;
     this.difficulty = data.difficulty;
+    this.renderQuality = data.renderQuality;
     this.onReady = data.onReady;
   }
 
@@ -327,10 +330,17 @@ export class LevelScene extends Phaser.Scene {
       .setDepth(10_000)
       .setVisible(false);
 
-    this.setupWorldLighting();
-    this.setupAmbientParticles();
-    this.setupForegroundLeaves();
-    this.setupPostFX();
+    // Render quality gates the expensive-but-optional layers, cheapest to
+    // priciest: post-FX camera filters and the foreground leaf layer go
+    // first (medium+), full lighting/ambient particles need high+. "low"
+    // is background + cat + gameplay only — no atmosphere layers at all.
+    const q = this.renderQuality;
+    if (q !== "low") this.setupPostFX();
+    if (q === "high" || q === "ultra") {
+      this.setupWorldLighting();
+      this.setupAmbientParticles();
+      this.setupForegroundLeaves();
+    }
 
     // Hop-ready cue: a faint glow at the cat's feet that fades in once the
     // cooldown clears, so "can I hop again?" is answerable by looking at the
@@ -486,8 +496,13 @@ export class LevelScene extends Phaser.Scene {
 
   /**
    * Cheap, asset-free "consistent style" grade: a soft vignette plus a
-   * per-ambient color tilt (cool/blue at night, warm/neutral by day) via
-   * Phaser's built-in camera post-pipeline — no extra textures needed.
+   * color tilt (cool/blue at night, warm/neutral by day) via Phaser's
+   * built-in camera post-pipeline — no extra textures needed.
+   *
+   * `level.ambient` ("day" | "dim" | "night") drives a continuous blend
+   * between the day and night grades rather than a hard day/night switch,
+   * so "dim" levels get a real in-between look instead of silently falling
+   * into the day branch (the previous binary if/else had no dim case at all).
    */
   private setupPostFX() {
     const cam = this.cameras.main;
@@ -495,16 +510,13 @@ export class LevelScene extends Phaser.Scene {
     // space before the transform (internal) — matches the v4 filter split.
     cam.filters.external.addVignette(0.5, 0.5, 0.82, 0.35);
     const grade = cam.filters.internal.addColorMatrix();
-    if (this.level.ambient === "night") {
-      grade.colorMatrix.brightness(0.92);
-      grade.colorMatrix.contrast(1.08);
-      grade.colorMatrix.saturate(-0.1);
-      grade.colorMatrix.hue(6);
-    } else {
-      grade.colorMatrix.brightness(1.02);
-      grade.colorMatrix.contrast(1.04);
-      grade.colorMatrix.saturate(0.06);
-    }
+
+    const night = this.level.ambient === "night" ? 1 : this.level.ambient === "dim" ? 0.5 : 0;
+    const lerp = (day: number, nightVal: number) => Phaser.Math.Linear(day, nightVal, night);
+    grade.colorMatrix.brightness(lerp(1.02, 0.92));
+    grade.colorMatrix.contrast(lerp(1.04, 1.08));
+    grade.colorMatrix.saturate(lerp(0.06, -0.1));
+    grade.colorMatrix.hue(lerp(0, 6));
   }
 
   private sliceCatFrames() {
@@ -579,7 +591,10 @@ export class LevelScene extends Phaser.Scene {
   }
 
   private spawnDust(x: number, y: number, count: number) {
-    this.dust.explode(count, x, y);
+    // Halve particle counts below "high" — dust is frequent (every footstep)
+    // so its cost adds up fastest of all the optional layers.
+    const n = this.renderQuality === "low" ? 0 : this.renderQuality === "medium" ? Math.ceil(count / 2) : count;
+    if (n > 0) this.dust.explode(n, x, y);
   }
 
   private collectItem(obj: LevelObject) {
@@ -790,7 +805,7 @@ export class LevelScene extends Phaser.Scene {
       // Sprint ghost trail: cheap "motion blur" via short-lived faded copies
       // of the current frame, spawned at a fixed cadence rather than every
       // frame (frame-rate independent, and avoids flooding the scene).
-      if (sprinting) {
+      if (sprinting && this.renderQuality !== "low") {
         this.ghostAcc += deltaMs;
         if (this.ghostAcc >= GHOST_INTERVAL) {
           this.ghostAcc = 0;

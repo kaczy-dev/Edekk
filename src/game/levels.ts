@@ -246,8 +246,7 @@ export const LEVELS: LevelDef[] = [
     spawn: { x: 750, y: 850 },
     ambient: "day",
     ambientFx: "motes",
-    intro:
-      "Ktoś zostawił furtkę do ogrodu za blokiem uchyloną. Edek wymyka się między kwietniki.",
+    intro: "Ktoś zostawił furtkę do ogrodu za blokiem uchyloną. Edek wymyka się między kwietniki.",
     objective: "Znajdź 3 smakołyki, pogadaj z gołębiem, wróć do klatki schodowej.",
     unlockHint: "Odblokowane po powrocie z dachu (Poziom 4).",
     quests: [

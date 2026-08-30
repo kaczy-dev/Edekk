@@ -73,6 +73,37 @@ function SettingsPage() {
             })}
           </div>
         </section>
+
+        {/* Render quality (Phaser levels) */}
+        <section className="mt-10 space-y-4 rounded-3xl border border-border bg-card p-6">
+          <div>
+            <h2 className="font-display text-xl font-semibold">Jakość grafiki</h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Steruje gęstością cząstek, świateł i efektów kamery. Obniż na słabszym urządzeniu.
+            </p>
+          </div>
+          <div className="grid grid-cols-4 gap-2">
+            {(["low", "medium", "high", "ultra"] as const).map((q) => {
+              const active = controls.renderQuality === q;
+              const labels: Record<typeof q, string> = { low: "Niska", medium: "Średnia", high: "Wysoka", ultra: "Ultra" };
+              return (
+                <button
+                  key={q}
+                  onClick={() => setControls({ renderQuality: q })}
+                  className={[
+                    "rounded-2xl border px-2 py-3 text-sm font-semibold transition active:scale-[0.97]",
+                    active
+                      ? "border-honey bg-honey/15 text-foreground"
+                      : "border-border bg-muted/40 text-muted-foreground hover:text-foreground hover:border-honey/30",
+                  ].join(" ")}
+                >
+                  {labels[q]}
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
         <section className="mt-10 space-y-6 rounded-3xl border border-border bg-card p-6">
           <h2 className="font-display text-xl font-semibold">Dźwięk</h2>
           <div>
@@ -104,12 +135,25 @@ function SettingsPage() {
         <section className="mt-6 space-y-6 rounded-3xl border border-border bg-card p-6">
           <div className="flex items-center justify-between">
             <h2 className="font-display text-xl font-semibold">Sterowanie</h2>
-            <button
-              onClick={resetControls}
-              className="text-xs text-muted-foreground underline-offset-2 transition hover:text-foreground hover:underline"
-            >
-              Przywróć domyślne
-            </button>
+            <AlertDialog>
+              <AlertDialogTrigger className="text-xs text-muted-foreground underline-offset-2 transition hover:text-foreground hover:underline">
+                Przywróć domyślne
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Przywrócić ustawienia sterowania?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Wszystkie zmiane ustawień sterowania zostaną anulowane.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Anuluj</AlertDialogCancel>
+                  <AlertDialogAction onClick={resetControls}>
+                    Przywróć
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
 
           <div>

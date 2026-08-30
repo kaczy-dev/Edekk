@@ -11,6 +11,7 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { useGameStore } from "../store/gameStore";
 
 function NotFoundComponent() {
   return (
@@ -36,6 +37,7 @@ function NotFoundComponent() {
 
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   const router = useRouter();
+  const save = useGameStore((s) => s.save);
   useEffect(() => {
     // Logging belongs in an effect: in render it re-fires on every re-render.
     console.error(error);
@@ -61,6 +63,14 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
           >
             Spróbuj ponownie
           </button>
+          {save && (
+            <a
+              href={`/poziom/${save.levelId}`}
+              className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+            >
+              Wróć do poziomu
+            </a>
+          )}
           <a
             href="/"
             className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"

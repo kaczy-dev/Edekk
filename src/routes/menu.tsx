@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
+import { useState } from "react";
 import { LEVELS } from "@/game/levels";
 import { useGameStore } from "@/store/gameStore";
 import { computeQuests, questCompletion } from "@/game/questUtils";
@@ -66,109 +67,136 @@ function MenuPage() {
             const counts = questCompletion(statuses);
 
             return (
-              <motion.div
-                key={l.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.08, duration: 0.5, ease: [0.2, 0.8, 0.2, 1] }}
-              >
-                {isUnlocked ? (
-                  <Tilt3D className="h-full" intensity={7} lift={18}>
-                  <Link
-                    to="/poziom/$id"
-                    params={{ id: l.id }}
-                    className="group relative block overflow-hidden rounded-3xl border border-border bg-card shadow-lg shadow-black/30 transition duration-300 hover:border-honey/50 hover:shadow-2xl hover:shadow-honey/10"
-                  >
-                    <div className="relative aspect-[16/9] overflow-hidden">
-                      <img
-                        src={l.background}
-                        alt={l.title}
-                        className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
-                        loading="lazy"
-                        width={1536}
-                        height={1024}
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-card via-card/30 to-transparent" />
-                      {done ? (
-                        <span className="absolute right-3 top-3 rounded-full bg-honey/90 px-3 py-1 text-xs font-bold text-background">
-                          ✓ Ukończony
-                        </span>
-                      ) : (
-                        <span className="absolute right-3 top-3 rounded-full border border-white/20 bg-black/40 px-3 py-1 text-xs font-medium text-white backdrop-blur-md">
-                          {counts.done}/{counts.total} zadań
-                        </span>
-                      )}
-                    </div>
-                    <div className="p-5">
-                      <div className="text-xs uppercase tracking-[0.25em] text-muted-foreground">Poziom {l.id}</div>
-                      <h3 className="mt-1 font-display text-2xl font-semibold">{l.title}</h3>
-                      <p className="text-sm text-muted-foreground">{l.subtitle}</p>
-                      <ul className="mt-3 space-y-1 text-[13px]">
-                        {statuses.map((s) => (
-                          <li key={s.quest.id} className="flex items-center gap-2">
-                            <span
-                              className={[
-                                "grid h-3.5 w-3.5 flex-none place-items-center rounded-[4px] text-[9px] font-bold",
-                                s.done ? "bg-honey text-background" : "border border-muted-foreground/40 text-transparent",
-                              ].join(" ")}
-                            >
-                              ✓
-                            </span>
-                            <span className={s.done ? "text-muted-foreground line-through" : "text-foreground/85"}>
-                              {s.quest.label}
-                            </span>
-                            {s.total > 1 && (
-                              <span className="ml-auto text-[11px] tabular-nums text-muted-foreground">
-                                {s.current}/{s.total}
-                              </span>
-                            )}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </Link>
-                  </Tilt3D>
-                ) : (
-                  <div className="block overflow-hidden rounded-3xl border border-border bg-card shadow-lg shadow-black/30">
-                    <div className="relative aspect-[16/9] overflow-hidden">
-                      <img
-                        src={l.background}
-                        alt=""
-                        aria-hidden
-                        className="h-full w-full object-cover opacity-25 blur-sm"
-                        loading="lazy"
-                        width={1536}
-                        height={1024}
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-card via-card/30 to-transparent" />
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-center">
-                          <div className="text-4xl mb-2">🔒</div>
-                          <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Zablokowane</div>
-                        </span>
-                      </div>
-                      {i > 0 && unlocked.includes(LEVELS[i - 1].id) && (
-                        <span className="absolute right-3 top-3 rounded-full border border-honey/60 bg-honey/10 px-3 py-1 text-xs font-semibold text-honey">
-                          ➜ Następny
-                        </span>
-                      )}
-                    </div>
-                    <div className="p-5">
-                      <div className="text-xs uppercase tracking-[0.25em] text-muted-foreground">Poziom {l.id}</div>
-                      <h3 className="mt-1 font-display text-2xl font-semibold">{l.title}</h3>
-                      <p className="text-sm text-muted-foreground">{l.subtitle}</p>
-                      <div className="mt-3 rounded-xl border border-honey/20 bg-honey/5 px-3 py-2 text-[13px] text-honey/90">
-                        <span className="mr-1">🔑</span>{l.unlockHint}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </motion.div>
+              <LevelCardItem key={l.id} level={l} isUnlocked={isUnlocked} done={done} counts={counts} statuses={statuses} delay={i * 0.08} />
             );
           })}
         </div>
       </div>
     </main>
+  );
+}
+
+function LevelCardItem({ level: l, isUnlocked, done, counts, statuses, delay }: {
+  level: typeof LEVELS[0];
+  isUnlocked: boolean;
+  done: boolean;
+  counts: ReturnType<typeof questCompletion>;
+  statuses: ReturnType<typeof computeQuests>;
+  delay: number;
+}) {
+  const [imageLoaded, setImageLoaded] = useState(false);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay, duration: 0.5, ease: [0.2, 0.8, 0.2, 1] }}
+    >
+      {isUnlocked ? (
+        <Tilt3D className="h-full" intensity={7} lift={18}>
+        <Link
+          to="/poziom/$id"
+          params={{ id: l.id }}
+          className="group relative block overflow-hidden rounded-3xl border border-border bg-card shadow-lg shadow-black/30 transition duration-300 hover:border-honey/50 hover:shadow-2xl hover:shadow-honey/10"
+        >
+          <div className="relative aspect-[16/9] overflow-hidden bg-muted">
+            {!imageLoaded && (
+              <div className="absolute inset-0 animate-pulse bg-muted-foreground/20" />
+            )}
+            <img
+              src={l.background}
+              alt={l.title}
+              className={[
+                "h-full w-full object-cover transition duration-700 group-hover:scale-105",
+                imageLoaded ? "opacity-100" : "opacity-0"
+              ].join(" ")}
+              onLoad={() => setImageLoaded(true)}
+              loading="lazy"
+              width={1536}
+              height={1024}
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-card via-card/30 to-transparent" />
+            {done ? (
+              <span className="absolute right-3 top-3 rounded-full bg-honey/90 px-3 py-1 text-xs font-bold text-background">
+                ✓ Ukończony
+              </span>
+            ) : (
+              <span className="absolute right-3 top-3 rounded-full border border-white/20 bg-black/40 px-3 py-1 text-xs font-medium text-white backdrop-blur-md">
+                {counts.done}/{counts.total} zadań
+              </span>
+            )}
+          </div>
+          <div className="p-5">
+            <div className="text-xs uppercase tracking-[0.25em] text-muted-foreground">Poziom {l.id}</div>
+            <h3 className="mt-1 font-display text-2xl font-semibold">{l.title}</h3>
+            <p className="text-sm text-muted-foreground">{l.subtitle}</p>
+            <ul className="mt-3 space-y-1 text-[13px]">
+              {statuses.map((s) => (
+                <li key={s.quest.id} className="flex items-center gap-2">
+                  <span
+                    className={[
+                      "grid h-3.5 w-3.5 flex-none place-items-center rounded-[4px] text-[9px] font-bold",
+                      s.done ? "bg-honey text-background" : "border border-muted-foreground/40 text-transparent",
+                    ].join(" ")}
+                  >
+                    ✓
+                  </span>
+                  <span className={s.done ? "text-muted-foreground line-through" : "text-foreground/85"}>
+                    {s.quest.label}
+                  </span>
+                  {s.total > 1 && (
+                    <span className="ml-auto text-[11px] tabular-nums text-muted-foreground">
+                      {s.current}/{s.total}
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </Link>
+        </Tilt3D>
+      ) : (
+        <div
+          role="img"
+          aria-disabled="true"
+          aria-label={`${l.title} (Zablokowany) - Odblokuj, ukończyć poprzedni poziom`}
+          className="block overflow-hidden rounded-3xl border border-border bg-card shadow-lg shadow-black/30">
+          <div className="relative aspect-[16/9] overflow-hidden bg-muted">
+            {!imageLoaded && (
+              <div className="absolute inset-0 animate-pulse bg-muted-foreground/20 z-10" />
+            )}
+            <img
+              src={l.background}
+              alt=""
+              aria-hidden
+              className={[
+                "h-full w-full object-cover opacity-25 blur-sm transition duration-700",
+                imageLoaded ? "opacity-25" : "opacity-0"
+              ].join(" ")}
+              onLoad={() => setImageLoaded(true)}
+              loading="lazy"
+              width={1536}
+              height={1024}
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-card via-card/30 to-transparent" />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="text-center">
+                <div className="text-4xl mb-2">🔒</div>
+                <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Zablokowane</div>
+              </span>
+            </div>
+          </div>
+          <div className="p-5">
+            <div className="text-xs uppercase tracking-[0.25em] text-muted-foreground">Poziom {l.id}</div>
+            <h3 className="mt-1 font-display text-2xl font-semibold">{l.title}</h3>
+            <p className="text-sm text-muted-foreground">{l.subtitle}</p>
+            <div className="mt-3 rounded-xl border border-honey/20 bg-honey/5 px-3 py-2 text-[13px] text-honey/90">
+              <span className="mr-1">🔑</span>{l.unlockHint}
+            </div>
+          </div>
+        </div>
+      )}
+    </motion.div>
   );
 }
 

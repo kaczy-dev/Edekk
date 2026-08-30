@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
 import edekPortrait from "@/assets/edek-portrait.jpg";
 import { ParallaxHero, ParallaxLayer } from "@/components/game/ParallaxHero";
 import { useGameStore } from "@/store/gameStore";
@@ -110,10 +111,36 @@ function EndScreen() {
 }
 
 function StatChip({ icon, label, value }: { icon: string; label: string; value: number | string }) {
+  const [displayValue, setDisplayValue] = useState(0);
+  const numValue = typeof value === "number" ? value : parseInt(value.toString(), 10);
+  const isString = typeof value === "string";
+
+  useEffect(() => {
+    if (!numValue) return;
+    const duration = 1.2;
+    const steps = 60;
+    const increment = numValue / steps;
+    let current = 0;
+    let step = 0;
+
+    const timer = setInterval(() => {
+      step++;
+      current = Math.min(increment * step, numValue);
+      setDisplayValue(Math.round(current));
+      if (step >= steps) clearInterval(timer);
+    }, (duration * 1000) / steps);
+
+    return () => clearInterval(timer);
+  }, [numValue]);
+
+  const displayText = isString
+    ? value.toString().replace(/\d+/, displayValue.toString())
+    : displayValue;
+
   return (
     <div className="flex items-center gap-2 rounded-full border border-border bg-card/60 px-4 py-2 text-sm backdrop-blur">
       <span className="text-lg leading-none">{icon}</span>
-      <span className="font-semibold tabular-nums">{value}</span>
+      <span className="font-semibold tabular-nums">{displayText}</span>
       <span className="text-muted-foreground">{label}</span>
     </div>
   );

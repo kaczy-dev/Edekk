@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { Link } from "@tanstack/react-router";
+import { Link, useRouter } from "@tanstack/react-router";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,6 +23,7 @@ interface Props {
 }
 
 export function PauseMenu({ open, onResume, onRestart, level }: Props) {
+  const router = useRouter();
   return (
     <AnimatePresence>
       {open && (
@@ -65,12 +66,23 @@ export function PauseMenu({ open, onResume, onRestart, level }: Props) {
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
-              <Link
-                to="/menu"
-                className="rounded-xl px-4 py-2 text-sm text-muted-foreground transition hover:text-foreground active:scale-95"
-              >
-                Wyjdź do menu
-              </Link>
+              <AlertDialog>
+                <AlertDialogTrigger className="rounded-xl px-4 py-2 text-sm text-muted-foreground transition hover:text-foreground active:scale-95 w-full text-left">
+                  Wyjdź do menu
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Wyjść do menu?</AlertDialogTitle>
+                    <AlertDialogDescription>Postęp w tym poziomie nie zostanie zapisany.</AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Anuluj</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => router.navigate({ to: "/menu" })}>
+                      Wyjdź do menu
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </motion.div>
         </motion.div>

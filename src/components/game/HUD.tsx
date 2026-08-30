@@ -107,9 +107,16 @@ export function HUD({ level, onPause, sprinting, getCatPos, onShowControls }: Pr
             aria-expanded={open}
           >
             <div className="min-w-0">
-              <h2 className="font-display text-base font-semibold text-honey md:text-lg truncate">
-                {level.title}
-              </h2>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <h2 className="font-display text-base font-semibold text-honey md:text-lg truncate">
+                      {level.title}
+                    </h2>
+                  </TooltipTrigger>
+                  <TooltipContent>{level.title}</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
               <p className="text-[11px] uppercase tracking-widest text-white/50">
                 Zadania {done}/{total}
                 <span className="mx-1.5 text-white/30">·</span>
