@@ -7,7 +7,7 @@ Tool-specific entry points (`CLAUDE.md`, `SKILLS.md`) point here — keep the su
 
 ## What this project is
 
-**Przygody Edka** ("Edek's Adventures") — a 2D top-down exploration game about Edek, a smoke-grey Maine Coon cat, played across four hand-painted worlds: Salon, Ogród (garden), Strych (attic) and Dach nocą (roof at night).
+**Przygody Edka** ("Edek's Adventures") — a 2D top-down with three.js 3d exploration game about Edek, a smoke-grey Maine Coon cat, played across four hand-painted worlds: Salon, Ogród (garden), Strych (attic) and Dach nocą (roof at night) and more.
 
 The game renders to a single `<canvas>` driven by a hand-written engine; everything around it (HUD, menus, dialogs) is React.
 
@@ -17,13 +17,13 @@ The game renders to a single `<canvas>` driven by a hand-written engine; everyth
 
 ## Commands
 
-| Command | Purpose |
-|---|---|
-| `npm run dev` | Vite dev server (tries port 8080, falls back if taken) |
-| `npm run build` | Production build — Vite → Nitro, targeting Cloudflare |
-| `npm run typecheck` | `tsc --noEmit` |
-| `npm run lint` | ESLint (flat config, Prettier runs as a lint rule) |
-| `npm run format` | `prettier --write .` |
+| Command             | Purpose                                                |
+| ------------------- | ------------------------------------------------------ |
+| `npm run dev`       | Vite dev server (tries port 8080, falls back if taken) |
+| `npm run build`     | Production build — Vite → Nitro, targeting Cloudflare  |
+| `npm run typecheck` | `tsc --noEmit`                                         |
+| `npm run lint`      | ESLint (flat config, Prettier runs as a lint rule)     |
+| `npm run format`    | `prettier --write .`                                   |
 
 **Before declaring work done, run `npm run typecheck` and `npm run build`.** Both currently pass.
 
@@ -62,19 +62,19 @@ routes/poziom.$id.tsx
 
 ### `src/game/` — engine and domain logic
 
-| File | Responsibility |
-|---|---|
-| `engine.ts` | `GameEngine`: RAF loop, movement, sliding collision, camera (dead-zone follow + look-ahead + zoom), gait/animation state, sprite and lighting caches |
-| `input.ts` | `InputState`: keyboard + touch aggregation, sprint hold/toggle, edge-triggered interact |
-| `types.ts` | Domain model — `LevelDef`, `LevelObject`, `QuestStep` (discriminated union), `ItemId` |
-| `levels.ts` | The four levels as static data, plus `getLevel(id)` |
-| `items.ts` | `ITEMS` registry — `Record<ItemId, ItemDef>`, so a missing item is a compile error |
-| `questUtils.ts` | `computeQuests()` / `questCompletion()` — pure derivation of quest state plus actionable hints |
-| `inventory.ts` | `NPC_GIFTS`, `giftObjId()`, `inventoryFromCollected()` — the single source of truth for NPC gift items |
-| `proximity.ts` | Per-archetype "how close counts as arrived" radii (gate / chest / food / spot) |
-| `tierStyle.ts` | Visual language for distance tiers, including a colour-blind-safe set with redundant shape + glyph |
-| `goalTracking.ts` | `useGoalTracks()` — the one hook that smooths distance/direction to reach-quest goals |
-| `particles.ts` | Pooled particle system: ambient drift, pickup sparkle, sting burst, paw dust |
+| File              | Responsibility                                                                                                                                       |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `engine.ts`       | `GameEngine`: RAF loop, movement, sliding collision, camera (dead-zone follow + look-ahead + zoom), gait/animation state, sprite and lighting caches |
+| `input.ts`        | `InputState`: keyboard + touch aggregation, sprint hold/toggle, edge-triggered interact                                                              |
+| `types.ts`        | Domain model — `LevelDef`, `LevelObject`, `QuestStep` (discriminated union), `ItemId`                                                                |
+| `levels.ts`       | The four levels as static data, plus `getLevel(id)`                                                                                                  |
+| `items.ts`        | `ITEMS` registry — `Record<ItemId, ItemDef>`, so a missing item is a compile error                                                                   |
+| `questUtils.ts`   | `computeQuests()` / `questCompletion()` — pure derivation of quest state plus actionable hints                                                       |
+| `inventory.ts`    | `NPC_GIFTS`, `giftObjId()`, `inventoryFromCollected()` — the single source of truth for NPC gift items                                               |
+| `proximity.ts`    | Per-archetype "how close counts as arrived" radii (gate / chest / food / spot)                                                                       |
+| `tierStyle.ts`    | Visual language for distance tiers, including a colour-blind-safe set with redundant shape + glyph                                                   |
+| `goalTracking.ts` | `useGoalTracks()` — the one hook that smooths distance/direction to reach-quest goals                                                                |
+| `particles.ts`    | Pooled particle system: ambient drift, pickup sparkle, sting burst, paw dust                                                                         |
 
 ### `src/store/gameStore.ts`
 
@@ -142,9 +142,9 @@ Several features are linked by string, not by type. When renaming, grep for all 
 - **Unused-code detection is currently off** (`noUnusedLocals`, `noUnusedParameters` and `@typescript-eslint/no-unused-vars` are all disabled). Nothing will warn you about dead code — three fully-unused modules accumulated this way. Clean up after yourself.
 - **Path alias:** `@/` → `src/`.
 - **Styling:** Tailwind v4, configured CSS-first in `src/styles.css` via `@theme inline`. Use the semantic tokens (`honey`, `amber`, `moss`, `night`, `card`, `border`) instead of raw hex.
-- **Fonts** (Fraunces, Plus Jakarta Sans) load via `<link>` in `__root.tsx`, *not* `@import` in CSS — a CSS `@import` must precede every other rule and would otherwise land after Tailwind's expansion and fail to build.
+- **Fonts** (Fraunces, Plus Jakarta Sans) load via `<link>` in `__root.tsx`, _not_ `@import` in CSS — a CSS `@import` must precede every other rule and would otherwise land after Tailwind's expansion and fail to build.
 - **Respect `controls.reducedMotion`.** It already gates screen shake, ambient particles, `Tilt3D` and `ParallaxHero`. Event feedback (pickup sparkle, sting burst) deliberately stays on so information is not lost.
-- **Accessibility:** distance tiers encode meaning with colour *and* shape *and* glyph (`tierStyle.ts`). Preserve that redundancy.
+- **Accessibility:** distance tiers encode meaning with colour _and_ shape _and_ glyph (`tierStyle.ts`). Preserve that redundancy.
 
 ---
 

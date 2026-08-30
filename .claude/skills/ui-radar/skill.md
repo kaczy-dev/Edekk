@@ -3,7 +3,7 @@ name: ui-radar
 description: Find and compare real UI examples from UIZZE’s 800,000+ web and iOS screens. Use for UI inspiration, UI research, design references, comparable apps, user flows, layouts, navigation, components, interaction states, and product patterns before designing or redesigning an interface.
 ---
 
-> _**Don't let your AI agents design blind.**_
+> ***Don't let your AI agents design blind.***
 
 # Use 800,000+ Real UI Screenshots
 
