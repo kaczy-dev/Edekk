@@ -1,30 +1,71 @@
 import { describe, expect, it } from "vitest";
-import { inventoryFromCollected, giftObjId, NPC_GIFTS } from "./inventory";
-import { getLevel } from "./levels";
+import { NPC_GIFTS, giftObjId, inventoryFromCollected } from "./inventory";
+import type { LevelDef } from "./types";
 
-const level1 = getLevel("1")!;
+function makeLevel(overrides: Partial<LevelDef> = {}): LevelDef {
+  return {
+    id: "t1",
+    slug: "test",
+    title: "Test Level",
+    subtitle: "",
+    background: "",
+    width: 1000,
+    height: 1000,
+    spawn: { x: 0, y: 0 },
+    intro: "",
+    objective: "",
+    unlockHint: "",
+    quests: [],
+    objects: [],
+    ...overrides,
+  };
+}
 
 describe("inventoryFromCollected", () => {
-  it("tallies picked-up items by their itemId", () => {
-    const inv = inventoryFromCollected(level1, ["i-ball", "i-treat"]);
-    expect(inv.ball).toBe(1);
-    expect(inv.treat).toBe(1);
+  it("counts each collected map item once", () => {
+    const level = makeLevel({
+      objects: [
+        { id: "m1", kind: "item", itemId: "mouse", rect: { x: 0, y: 0, w: 10, h: 10 } },
+        { id: "m2", kind: "item", itemId: "mouse", rect: { x: 0, y: 0, w: 10, h: 10 } },
+        { id: "b1", kind: "item", itemId: "ball", rect: { x: 0, y: 0, w: 10, h: 10 } },
+      ],
+    });
+    const inventory = inventoryFromCollected(level, ["m1", "m2", "b1"]);
+    expect(inventory).toEqual({ mouse: 2, ball: 1 });
   });
 
-  it("ignores unknown/stale object ids instead of throwing", () => {
-    const inv = inventoryFromCollected(level1, ["not-a-real-object-id"]);
-    expect(inv).toEqual({});
+  it("resolves an NPC gift id back to the item it grants", () => {
+    const level = makeLevel({
+      objects: [
+        { id: "squirrel", kind: "npc", npcId: "squirrel", rect: { x: 0, y: 0, w: 10, h: 10 } },
+      ],
+    });
+    const inventory = inventoryFromCollected(level, [giftObjId("squirrel")]);
+    expect(inventory).toEqual({ [NPC_GIFTS.squirrel]: 1 });
   });
 
-  it("resolves an NPC gift id (npcObjId + '-gift') back to the granted ItemId", () => {
-    const level2 = getLevel("2")!;
-    const inv = inventoryFromCollected(level2, [giftObjId("squirrel")]);
-    expect(inv[NPC_GIFTS.squirrel]).toBe(1);
+  it("ignores an id that matches nothing in the level (stale save data)", () => {
+    const level = makeLevel();
+    const inventory = inventoryFromCollected(level, ["does-not-exist"]);
+    expect(inventory).toEqual({});
   });
-});
 
-describe("giftObjId", () => {
-  it("is stable and reversible via the '-gift' suffix convention", () => {
-    expect(giftObjId("pigeon")).toBe("pigeon-gift");
+  it("ignores a gift id whose NPC has no entry in NPC_GIFTS", () => {
+    const level = makeLevel({
+      objects: [
+        {
+          id: "stranger",
+          kind: "npc",
+          npcId: "unregistered-npc",
+          rect: { x: 0, y: 0, w: 10, h: 10 },
+        },
+      ],
+    });
+    const inventory = inventoryFromCollected(level, [giftObjId("stranger")]);
+    expect(inventory).toEqual({});
+  });
+
+  it("returns an empty inventory for an empty collected list", () => {
+    expect(inventoryFromCollected(makeLevel(), [])).toEqual({});
   });
 });

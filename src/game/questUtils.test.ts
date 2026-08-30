@@ -1,89 +1,187 @@
 import { describe, expect, it } from "vitest";
 import { computeQuests, questCompletion } from "./questUtils";
-import { LEVELS, getLevel } from "./levels";
+import type { LevelDef } from "./types";
 
-const level1 = getLevel("1")!;
+function makeLevel(overrides: Partial<LevelDef> = {}): LevelDef {
+  return {
+    id: "t1",
+    slug: "test",
+    title: "Test Level",
+    subtitle: "",
+    background: "",
+    width: 1000,
+    height: 1000,
+    spawn: { x: 0, y: 0 },
+    intro: "",
+    objective: "",
+    unlockHint: "",
+    quests: [],
+    objects: [],
+    ...overrides,
+  };
+}
 
-describe("computeQuests", () => {
-  it("marks a collect quest done once the item count is reached", () => {
-    const [ballQuest] = computeQuests(level1, {
-      inventory: { ball: 1 },
+describe("computeQuests: collect quests", () => {
+  it("is not done while inventory count is below the target", () => {
+    const level = makeLevel({
+      quests: [{ id: "q1", kind: "collect", itemId: "mouse", count: 3, label: "" }],
+    });
+    const [status] = computeQuests(level, {
+      inventory: { mouse: 2 },
       talked: [],
       levelCompleted: false,
       collected: [],
     });
-    expect(ballQuest.done).toBe(true);
-    expect(ballQuest.current).toBe(1);
-    expect(ballQuest.total).toBe(1);
+    expect(status.done).toBe(false);
+    expect(status.current).toBe(2);
+    expect(status.total).toBe(3);
   });
 
-  it("leaves a collect quest not-done and reports a hint when short", () => {
-    const [ballQuest] = computeQuests(level1, {
+  it("is done once inventory count reaches the target", () => {
+    const level = makeLevel({
+      quests: [{ id: "q1", kind: "collect", itemId: "mouse", count: 3, label: "" }],
+    });
+    const [status] = computeQuests(level, {
+      inventory: { mouse: 3 },
+      talked: [],
+      levelCompleted: false,
+      collected: [],
+    });
+    expect(status.done).toBe(true);
+    expect(status.missing).toEqual([]);
+  });
+
+  it("caps `current` at the target even with excess inventory", () => {
+    const level = makeLevel({
+      quests: [{ id: "q1", kind: "collect", itemId: "mouse", count: 2, label: "" }],
+    });
+    const [status] = computeQuests(level, {
+      inventory: { mouse: 99 },
+      talked: [],
+      levelCompleted: false,
+      collected: [],
+    });
+    expect(status.current).toBe(2);
+  });
+
+  it("points a missing-item hint at an uncollected source on the map", () => {
+    const level = makeLevel({
+      quests: [{ id: "q1", kind: "collect", itemId: "mouse", count: 1, label: "" }],
+      objects: [
+        { id: "m1", kind: "item", itemId: "mouse", rect: { x: 100, y: 100, w: 10, h: 10 } },
+      ],
+    });
+    const [status] = computeQuests(level, {
       inventory: {},
       talked: [],
       levelCompleted: false,
       collected: [],
     });
-    expect(ballQuest.done).toBe(false);
-    expect(ballQuest.current).toBe(0);
-    expect(ballQuest.missing.length).toBeGreaterThan(0);
+    expect(status.missing).toHaveLength(1);
+    expect(status.missing[0].where).toContain("mapy");
   });
 
-  it("caps `current` at the required count even with excess inventory", () => {
-    const [ballQuest] = computeQuests(level1, {
-      inventory: { ball: 99 },
-      talked: [],
-      levelCompleted: false,
-      collected: [],
+  it("falls back to an off-map hint when every source is already collected", () => {
+    const level = makeLevel({
+      quests: [{ id: "q1", kind: "collect", itemId: "mouse", count: 1, label: "" }],
+      objects: [
+        { id: "m1", kind: "item", itemId: "mouse", rect: { x: 100, y: 100, w: 10, h: 10 } },
+      ],
     });
-    expect(ballQuest.current).toBe(1);
-  });
-
-  it("marks a talk quest done only once the npc id is in `talked`", () => {
-    const level2 = getLevel("2")!;
-    const [, squirrelQuest] = computeQuests(level2, {
+    const [status] = computeQuests(level, {
       inventory: {},
-      talked: ["squirrel"],
+      talked: [],
+      levelCompleted: false,
+      collected: ["m1"],
+    });
+    expect(status.missing).toHaveLength(1);
+    expect(status.missing[0].where).not.toContain("mapy");
+  });
+});
+
+describe("computeQuests: talk quests", () => {
+  it("is done once the NPC has been talked to", () => {
+    const level = makeLevel({
+      quests: [{ id: "q1", kind: "talk", objId: "npc1", label: "" }],
+      objects: [{ id: "npc1", kind: "npc", rect: { x: 0, y: 0, w: 10, h: 10 } }],
+    });
+    const [status] = computeQuests(level, {
+      inventory: {},
+      talked: ["npc1"],
       levelCompleted: false,
       collected: [],
     });
-    expect(squirrelQuest.done).toBe(true);
+    expect(status.done).toBe(true);
   });
 
-  it("a reach quest is 'ready' once requirements are met but not yet completed", () => {
-    const [, , reachQuest] = computeQuests(level1, {
-      inventory: { ball: 1, treat: 1 },
+  it("is not done and has no crash when the NPC object is missing from the level", () => {
+    const level = makeLevel({
+      quests: [{ id: "q1", kind: "talk", objId: "ghost", label: "" }],
+    });
+    const [status] = computeQuests(level, {
+      inventory: {},
       talked: [],
       levelCompleted: false,
       collected: [],
     });
-    expect(reachQuest.ready).toBe(true);
-    expect(reachQuest.done).toBe(false);
+    expect(status.done).toBe(false);
+    expect(status.missing).toEqual([]);
+  });
+});
+
+describe("computeQuests: reach quests", () => {
+  it("is ready but not done once requirements are met and the goal hasn't been reached", () => {
+    const level = makeLevel({
+      quests: [{ id: "q1", kind: "reach", objId: "goal1", label: "" }],
+      objects: [
+        {
+          id: "goal1",
+          kind: "goal",
+          rect: { x: 0, y: 0, w: 10, h: 10 },
+          requires: { key: 1 },
+        },
+      ],
+    });
+    const [status] = computeQuests(level, {
+      inventory: { key: 1 },
+      talked: [],
+      levelCompleted: false,
+      collected: [],
+    });
+    expect(status.done).toBe(false);
+    expect(status.ready).toBe(true);
   });
 
-  it("a reach quest is done once `levelCompleted` is true, regardless of inventory", () => {
-    const [, , reachQuest] = computeQuests(level1, {
+  it("is done once the level is marked completed", () => {
+    const level = makeLevel({
+      quests: [{ id: "q1", kind: "reach", objId: "goal1", label: "" }],
+      objects: [{ id: "goal1", kind: "goal", rect: { x: 0, y: 0, w: 10, h: 10 } }],
+    });
+    const [status] = computeQuests(level, {
       inventory: {},
       talked: [],
       levelCompleted: true,
       collected: [],
     });
-    expect(reachQuest.done).toBe(true);
+    expect(status.done).toBe(true);
+    expect(status.missing).toEqual([]);
   });
 });
 
 describe("questCompletion", () => {
-  it("counts done vs total across every level's real quest list", () => {
-    for (const level of LEVELS) {
-      const statuses = computeQuests(level, {
-        inventory: {},
-        talked: [],
-        levelCompleted: false,
-        collected: [],
-      });
-      const { done, total } = questCompletion(statuses);
-      expect(total).toBe(level.quests.length);
-      expect(done).toBe(0);
-    }
+  it("counts only done statuses", () => {
+    const level = makeLevel({
+      quests: [
+        { id: "q1", kind: "collect", itemId: "mouse", count: 1, label: "" },
+        { id: "q2", kind: "collect", itemId: "ball", count: 1, label: "" },
+      ],
+    });
+    const statuses = computeQuests(level, {
+      inventory: { mouse: 1 },
+      talked: [],
+      levelCompleted: false,
+      collected: [],
+    });
+    expect(questCompletion(statuses)).toEqual({ done: 1, total: 2 });
   });
 });

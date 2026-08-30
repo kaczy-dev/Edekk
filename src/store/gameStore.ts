@@ -300,6 +300,13 @@ export const useGameStore = create<GameState>()(
     }),
     {
       name: "edek-game-v1",
+      // Zustand's own schema version, separate from the "-v1" suffix in `name`
+      // above (that suffix is a blunt fallback: bumping it abandons old saves
+      // entirely). Bump this instead for a shape change that can be migrated
+      // gracefully, and extend `migrate` below to transform old data forward
+      // rather than discarding it.
+      version: 1,
+      migrate: (persistedState) => persistedState as GameState,
       // `energy` changes several times a second during play, and every persisted
       // write is a synchronous JSON.stringify + localStorage.setItem of the whole
       // store. Neither field needs to survive a reload: startLevel() rebuilds the
