@@ -21,6 +21,10 @@ export const LEVELS: LevelDef[] = [
     spawn: { x: 400, y: 650 },
     ambient: "night",
     ambientFx: "motes",
+    // Sepia-warm evening with a firefly-like glow around the promenade lamps
+    // (the "motes" ambientFx + pointLight above already do the glow itself —
+    // this just tints the whole scene to match).
+    mood: { sepia: true, brightness: 1.0, contrast: 1.08, saturate: 0.05, hue: 8 },
     intro: "Wieczorne światła Wałów Chrobrego migoczą nad Odrą. Edek wymyka się na spacer.",
     objective: "Znajdź piłeczkę i smakołyk, potem wejdź przez bramę do baszty.",
     unlockHint: "Dostępne od początku — pierwsza wyprawa Edka.",
@@ -81,6 +85,8 @@ export const LEVELS: LevelDef[] = [
     spawn: { x: 300, y: 700 },
     ambient: "day",
     ambientFx: "petals",
+    // Rich, saturated park greens — the lushest-looking level.
+    mood: { brightness: 1.03, contrast: 1.04, saturate: 0.3, hue: -4 },
     intro: "Słońce grzeje klomby przy Pomniku Czynu Polaków. Edek węszy wśród kwiatów.",
     objective: "Znajdź 3 myszki, pogadaj z wiewiórką, znajdź wyjście w głąb alei.",
     unlockHint: "Odblokowane po wieczornym spacerze na Wałach Chrobrego (Poziom 1).",
@@ -146,6 +152,8 @@ export const LEVELS: LevelDef[] = [
     spawn: { x: 800, y: 800 },
     ambient: "day",
     ambientFx: "petals",
+    // Golden hour: warm orange hue push, slightly boosted contrast.
+    mood: { brightness: 1.06, contrast: 1.06, saturate: 0.12, hue: 14 },
     intro: "Złota aleja szeleści pod łapkami. Edek brnie przez stertę liści.",
     objective: "Zbierz 3 złote liście i odpocznij na ławce.",
     unlockHint: "Odblokowane po zwiedzeniu Pomnika Czynu Polaków (Poziom 2).",
@@ -196,6 +204,8 @@ export const LEVELS: LevelDef[] = [
     spawn: { x: 780, y: 600 },
     ambient: "night",
     ambientFx: "stars",
+    // Cool nighttime blue — a chillier grade than the generic night blend.
+    mood: { brightness: 0.88, contrast: 1.1, saturate: -0.08, hue: -14, vignetteStrength: 0.42 },
     intro: "Powietrze jest chłodne. Zakurzony strych skrzypi w ciszy, oświetlony jedną lampą.",
     objective: "Zbierz 5 spadających gwiazd i spotkaj się z przyjacielem.",
     unlockHint: "Odblokowane po jesiennym spacerze Aleją Kasztanową (Poziom 3).",
@@ -246,6 +256,8 @@ export const LEVELS: LevelDef[] = [
     spawn: { x: 750, y: 850 },
     ambient: "day",
     ambientFx: "motes",
+    // Overcast: flattened contrast, muted saturation, no warm hue push.
+    mood: { brightness: 0.97, contrast: 0.94, saturate: -0.18, hue: 0 },
     intro: "Ktoś zostawił furtkę do ogrodu za blokiem uchyloną. Edek wymyka się między kwietniki.",
     objective: "Znajdź 3 smakołyki, pogadaj z gołębiem, wróć do klatki schodowej.",
     unlockHint: "Odblokowane po powrocie z dachu (Poziom 4).",
@@ -306,6 +318,8 @@ export const LEVELS: LevelDef[] = [
     spawn: { x: 120, y: 1050 },
     ambient: "day",
     ambientFx: "dust",
+    // Morning golden hour: softer/warmer than Aleja's late-afternoon gold.
+    mood: { brightness: 1.05, contrast: 1.02, saturate: 0.08, hue: 10 },
     intro: "Edek trafia na podwórko przy Łuczniczej 43 — zupełnie nowe sąsiedztwo do obwąchania.",
     objective: "Znajdź 3 miski z karmą, pogadaj z sąsiadem kotem, wróć do klatki schodowej.",
     unlockHint: "Odblokowane po powrocie z podwórka na Blokowisku (Poziom 5).",
