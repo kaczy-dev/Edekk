@@ -14,7 +14,7 @@ import { Route as OsiagnieciaRouteImport } from './routes/osiagniecia'
 import { Route as MenuRouteImport } from './routes/menu'
 import { Route as KoniecRouteImport } from './routes/koniec'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as PoziomIdRouteImport } from './routes/poziom./$id'
+import { Route as PoziomIdRouteImport } from './routes/poziom.$id'
 
 const UstawieniaRoute = UstawieniaRouteImport.update({
   id: '/ustawienia',

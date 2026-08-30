@@ -195,8 +195,10 @@ export function GameCanvas({ level }: Props) {
         // Navigation happens in a useEffect watching for dialog close + completion
       },
       onDanger: (obj: LevelObject) => {
-        drain(DIFFICULTIES[useGameStore.getState().difficulty].dangerDamage);
+        const state = useGameStore.getState();
+        drain(DIFFICULTIES[state.difficulty].dangerDamage);
         if (controls.vibration && "vibrate" in navigator) navigator.vibrate?.(80);
+        audio.playDanger(state.muted ? 0 : state.volume);
         setDialog(obj.message ?? "Uważaj!");
       },
       onEnergyDelta: (delta: number) => {

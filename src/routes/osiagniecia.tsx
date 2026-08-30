@@ -15,7 +15,7 @@ const ACHIEVEMENTS = [
   { id: "salon_complete", icon: "🛋️", title: "Puchaty Odkrywca", desc: "Ukończ Salon" },
   { id: "all_mice", icon: "🐭", title: "Łowca Myszek", desc: "Zbierz wszystkie myszki" },
   { id: "all_levels", icon: "⭐", title: "Mistrz Światów", desc: "Ukończ wszystkie 4 poziomy" },
-  { id: "speedrun_5min", icon: "⚡", title: "Błyskawica", desc: "Ukończ poziom w &lt;5 min" },
+  { id: "speedrun_5min", icon: "⚡", title: "Błyskawica", desc: "Ukończ poziom w <5 min" },
   { id: "zero_energy", icon: "🔋", title: "Energetyk", desc: "Osiągnij cel z pełną energią" },
   { id: "accessibility", icon: "♿", title: "Guru Dostępności", desc: "Włącz 5+ opcji dostępności" },
   { id: "garden_100", icon: "🌻", title: "Ogrodnik", desc: "100% zbiorów w Ogrodzie" },

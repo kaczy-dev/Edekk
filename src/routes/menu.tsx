@@ -25,9 +25,12 @@ function MenuPage() {
   return (
     <main className="min-h-[100dvh] px-6 py-16 md:py-24">
       <div className="mx-auto max-w-5xl">
-        <div className="flex items-center justify-between">
-          <Link to="/" className="text-sm text-muted-foreground transition hover:text-foreground">← Tytuł</Link>
-          <Link to="/ustawienia" className="text-sm text-muted-foreground transition hover:text-foreground">Ustawienia</Link>
+        <div className="flex items-center justify-between gap-2">
+          <Link to="/" className="rounded-full border border-border bg-card/60 px-4 py-2 text-sm font-medium text-foreground backdrop-blur transition hover:bg-card">← Tytuł</Link>
+          <div className="flex gap-2">
+            <Link to="/osiagniecia" className="rounded-full border border-border bg-card/60 px-4 py-2 text-sm font-medium text-foreground backdrop-blur transition hover:bg-card">Osiągnięcia</Link>
+            <Link to="/ustawienia" className="rounded-full border border-border bg-card/60 px-4 py-2 text-sm font-medium text-foreground backdrop-blur transition hover:bg-card">Ustawienia</Link>
+          </div>
         </div>
 
         <motion.h1
@@ -120,20 +123,31 @@ function MenuPage() {
                   </Link>
                   </Tilt3D>
                 ) : (
-                  <div className="block overflow-hidden rounded-3xl border border-dashed border-border bg-card/50">
+                  <div className="block overflow-hidden rounded-3xl border border-border bg-card shadow-lg shadow-black/30">
                     <div className="relative aspect-[16/9] overflow-hidden">
                       <img
                         src={l.background}
                         alt=""
                         aria-hidden
-                        className="h-full w-full object-cover opacity-20 blur-sm"
+                        className="h-full w-full object-cover opacity-25 blur-sm"
                         loading="lazy"
                         width={1536}
                         height={1024}
                       />
-                      <div className="absolute inset-0 grid place-items-center text-4xl">🔒</div>
+                      <div className="absolute inset-0 bg-gradient-to-t from-card via-card/30 to-transparent" />
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-center">
+                          <div className="text-4xl mb-2">🔒</div>
+                          <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Zablokowane</div>
+                        </span>
+                      </div>
+                      {i < LEVELS.length - 1 && !unlocked.includes(LEVELS[i + 1].id) && unlocked.includes(l.id) && (
+                        <span className="absolute right-3 top-3 rounded-full border border-honey/60 bg-honey/10 px-3 py-1 text-xs font-semibold text-honey">
+                          ➜ Następny
+                        </span>
+                      )}
                     </div>
-                    <div className="p-5 opacity-80">
+                    <div className="p-5">
                       <div className="text-xs uppercase tracking-[0.25em] text-muted-foreground">Poziom {l.id}</div>
                       <h3 className="mt-1 font-display text-2xl font-semibold">{l.title}</h3>
                       <p className="text-sm text-muted-foreground">{l.subtitle}</p>
