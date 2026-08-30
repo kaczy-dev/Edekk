@@ -7,6 +7,7 @@ import type { ItemId, LevelDef } from "./types";
  */
 export const NPC_GIFTS: Record<string, ItemId> = {
   squirrel: "yarn",
+  pigeon: "feather",
 };
 
 const GIFT_SUFFIX = "-gift";

@@ -14,7 +14,7 @@ export const Route = createFileRoute("/osiagniecia")({
 const ACHIEVEMENTS = [
   { id: "salon_complete", icon: "🛋️", title: "Puchaty Odkrywca", desc: "Ukończ Salon" },
   { id: "all_mice", icon: "🐭", title: "Łowca Myszek", desc: "Zbierz wszystkie myszki" },
-  { id: "all_levels", icon: "⭐", title: "Mistrz Światów", desc: "Ukończ wszystkie 4 poziomy" },
+  { id: "all_levels", icon: "⭐", title: "Mistrz Światów", desc: "Ukończ wszystkie 5 poziomów" },
   { id: "speedrun_5min", icon: "⚡", title: "Błyskawica", desc: "Ukończ poziom w <5 min" },
   { id: "zero_energy", icon: "🔋", title: "Energetyk", desc: "Osiągnij cel z pełną energią" },
   { id: "accessibility", icon: "♿", title: "Guru Dostępności", desc: "Włącz 5+ opcji dostępności" },

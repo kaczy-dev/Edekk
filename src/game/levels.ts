@@ -3,6 +3,7 @@ import salonBg from "@/assets/level-salon.jpg";
 import gardenBg from "@/assets/level-garden.jpg";
 import atticBg from "@/assets/level-attic.jpg";
 import roofBg from "@/assets/level-roof.jpg";
+import blokBg from "@/assets/level-blok.jpg";
 
 const W = 1600;
 const H = 900;
@@ -136,6 +137,39 @@ export const LEVELS: LevelDef[] = [
       { id: "s5", kind: "item", itemId: "star", rect: { x: 1450, y: 800, w: 50, h: 50 } },
       { id: "friend", kind: "goal", icon: "🐈", rect: { x: 1400, y: 400, w: 100, h: 100 },
         requires: { star: 5 }, message: "Przyjaciel mruczy: 'Wiedziałem, że dasz radę, Edek!'" },
+    ],
+  },
+  {
+    id: "5",
+    slug: "blokowisko",
+    title: "Blokowisko",
+    subtitle: "Wielka wyprawa w Szczecinie",
+    background: blokBg,
+    width: W,
+    height: H,
+    spawn: { x: 150, y: 800 },
+    ambient: "day",
+    ambientFx: "motes",
+    intro: "Ktoś zostawił okno na klatce uchylone. Edek zeskakuje na podwórko — ale skąd tu wraca do domu?",
+    objective: "Znajdź 3 smakołyki, pogadaj z gołębiem, wróć do klatki schodowej.",
+    unlockHint: "Odblokowane po powrocie z dachu (Poziom 4).",
+    quests: [
+      { id: "q5-treats", kind: "collect", itemId: "treat", count: 3, label: "Znajdź 3 smakołyki na podwórku" },
+      { id: "q5-pigeon", kind: "talk", objId: "pigeon", label: "Pogadaj z gołębiem po piórko" },
+      { id: "q5-entrance", kind: "reach", objId: "entrance", label: "Wróć do klatki schodowej" },
+    ],
+    objects: [
+      { id: "building", kind: "obstacle", rect: { x: 680, y: 0, w: 920, h: 480 } },
+      { id: "trees", kind: "obstacle", rect: { x: 0, y: 0, w: 680, h: 570 } },
+      { id: "shed", kind: "obstacle", rect: { x: 540, y: 604, w: 315, h: 125 } },
+      { id: "cars", kind: "obstacle", rect: { x: 396, y: 729, w: 437, h: 171 } },
+      { id: "i-treat1", kind: "item", itemId: "treat", rect: { x: 1000, y: 750, w: 50, h: 50 } },
+      { id: "i-treat2", kind: "item", itemId: "treat", rect: { x: 1350, y: 650, w: 50, h: 50 } },
+      { id: "i-treat3", kind: "item", itemId: "treat", rect: { x: 850, y: 550, w: 50, h: 50 } },
+      { id: "pigeon", kind: "npc", npcId: "pigeon", icon: "🐦", rect: { x: 950, y: 580, w: 70, h: 70 },
+        message: "Gruchanie! Gołąb podaje Edkowi błyszczące piórko." },
+      { id: "entrance", kind: "goal", icon: "🚪", rect: { x: 900, y: 420, w: 100, h: 60 },
+        requires: { treat: 3, feather: 1 }, message: "Klatka schodowa! Edek wraca do domu po wielkiej wyprawie." },
     ],
   },
 ];

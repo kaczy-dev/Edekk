@@ -58,7 +58,7 @@ function EndScreen() {
           transition={{ delay: 0.4 }}
           className="text-balance mt-6 max-w-xl text-lg text-muted-foreground"
         >
-          Cztery światy odkryte, wszystkie myszki odnalezione, gwiazdy zebrane. Edek mruczy z dumą i zwija się w kłębek na kanapie.
+          Pięć światów odkryte, wszystkie myszki odnalezione, gwiazdy zebrane, smakołyki znalezione. Edek mruczy z dumą i zwija się w kłębek na kanapie.
         </motion.p>
 
         <motion.div

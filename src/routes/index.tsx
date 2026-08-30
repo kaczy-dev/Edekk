@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
+import { useState } from "react";
 import edekPortrait from "@/assets/edek-portrait.jpg";
+import edekReal from "@/assets/real.jpg";
 import { useGameStore } from "@/store/gameStore";
 import { getLevel } from "@/game/levels";
 import { ParallaxHero, ParallaxLayer } from "@/components/game/ParallaxHero";
@@ -10,9 +12,9 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Przygody Edka — gra o kocie Maine coon" },
-      { name: "description", content: "Wyrusz z Edkiem, dymnym Maine coonem, w przygodową grę eksploracyjną przez salon, ogród, strych i dach nocą." },
+      { name: "description", content: "Wyrusz z Edkiem, dymnym Maine coonem, w przygodową grę eksploracyjną przez salon, ogród, strych, dach nocą i podwórko blokowiska." },
       { property: "og:title", content: "Przygody Edka — gra o kocie Maine coon" },
-      { property: "og:description", content: "Cztery światy, zagadki i mruczący bohater. Zagraj w grę o Edku." },
+      { property: "og:description", content: "Pięć światów, zagadki i mruczący bohater. Zagraj w grę o Edku." },
     ],
   }),
   component: TitleScreen,
@@ -21,6 +23,7 @@ export const Route = createFileRoute("/")({
 function TitleScreen() {
   const save = useGameStore((s) => s.save);
   const resumeLevel = save ? getLevel(save.levelId) : null;
+  const [showReal, setShowReal] = useState(false);
 
   return (
     <ParallaxHero className="relative flex h-[100dvh] flex-col overflow-hidden">
@@ -71,24 +74,69 @@ function TitleScreen() {
               intensity={14}
               lift={30}
             >
-              <div className="glow-amber relative h-full w-full rounded-full border-[3px] border-honey/50 bg-card p-1.5">
-                <div className="h-full w-full overflow-hidden rounded-full border border-white/10">
-                  <img
-                    src={edekPortrait}
-                    alt="Portret Edka, dymnego srebrnego kota Maine coon"
-                    className="h-full w-full object-cover"
-                    width={400}
-                    height={400}
-                  />
-                </div>
+              <button
+                type="button"
+                onClick={() => setShowReal((v) => !v)}
+                aria-label={showReal ? "Pokaż rysunkową wersję Edka" : "Pokaż prawdziwego Edka"}
+                className="glow-amber relative block h-full w-full rounded-full border-[3px] border-honey/50 bg-card p-1.5"
+                style={{ perspective: 800 }}
+              >
+                <motion.div
+                  animate={{ rotateY: showReal ? 180 : 0 }}
+                  transition={{ duration: 0.7, ease: [0.2, 0.8, 0.2, 1] }}
+                  className="relative h-full w-full"
+                  style={{ transformStyle: "preserve-3d" }}
+                >
+                  {/* Front: illustrated storybook portrait */}
+                  <div
+                    className="absolute inset-0 h-full w-full overflow-hidden rounded-full border border-white/10"
+                    style={{ backfaceVisibility: "hidden" }}
+                  >
+                    <img
+                      src={edekPortrait}
+                      alt="Rysunkowy portret Edka, dymnego srebrnego kota Maine coon"
+                      className="h-full w-full object-cover"
+                      width={400}
+                      height={400}
+                    />
+                  </div>
+                  {/* Back: the real cat that inspired the game */}
+                  <div
+                    className="absolute inset-0 h-full w-full overflow-hidden rounded-full border border-white/10"
+                    style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
+                  >
+                    <img
+                      src={edekReal}
+                      alt="Zdjęcie prawdziwego kota, który zainspirował Edka"
+                      className="h-full w-full object-cover"
+                      width={400}
+                      height={400}
+                    />
+                  </div>
+                </motion.div>
+                {/* Vignette: fades photo edges into the frame so off-center source art (checker
+                    margins on a transparent-background crop) never shows raw at the rim. */}
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute inset-1.5 rounded-full"
+                  style={{ background: "radial-gradient(circle, transparent 42%, var(--color-card) 80%)" }}
+                />
                 {/* Stitched storybook-plate ring */}
                 <div
                   aria-hidden
                   className="pointer-events-none absolute inset-[6px] rounded-full border border-dashed border-honey/30"
                 />
-              </div>
+              </button>
             </Tilt3D>
           </motion.div>
+          <motion.p
+            key={showReal ? "real" : "drawn"}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 0.75 }}
+            className="mt-2 text-center text-[11px] text-muted-foreground"
+          >
+            {showReal ? "🐾 Prawdziwy Edek — kliknij, by wrócić do bajki" : "🎨 Kliknij, by zobaczyć prawdziwego Edka"}
+          </motion.p>
         </motion.div>
 
         <motion.h1
@@ -123,7 +171,7 @@ function TitleScreen() {
           transition={{ delay: 0.4 }}
           className="text-balance mt-4 max-w-xs text-center text-sm text-muted-foreground sm:max-w-md sm:text-base"
         >
-          Cztery światy. Jeden puchaty bohater. Eksploruj salon, ogród, strych i dach nocą.
+          Pięć światów. Jeden puchaty bohater. Eksploruj salon, ogród, strych, dach nocą i podwórko blokowiska.
         </motion.p>
       </div>
 
@@ -136,43 +184,53 @@ function TitleScreen() {
       >
         {resumeLevel ? (
           <>
-            <Link
-              to="/poziom/$id"
-              params={{ id: resumeLevel.id }}
-              className="glow-amber group flex items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-4 text-base font-semibold text-primary-foreground transition active:scale-[0.98]"
-            >
-              Wznów: {resumeLevel.title}
-              <span className="transition group-hover:translate-x-1">→</span>
-            </Link>
+            <motion.div whileHover={{ y: -2 }} whileTap={{ scale: 0.97 }}>
+              <Link
+                to="/poziom/$id"
+                params={{ id: resumeLevel.id }}
+                className="glow-amber group flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-b from-primary to-primary/90 px-6 py-4 text-base font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition"
+              >
+                <span aria-hidden>🐾</span>
+                Wznów: {resumeLevel.title}
+                <span className="transition group-hover:translate-x-1">→</span>
+              </Link>
+            </motion.div>
             <div className="flex gap-2.5">
-              <Link
-                to="/menu"
-                className="flex-1 rounded-2xl border border-border bg-card/60 px-4 py-3 text-center text-sm font-medium text-foreground transition active:scale-[0.98]"
-              >
-                Wybierz poziom
-              </Link>
-              <Link
-                to="/ustawienia"
-                className="flex-1 rounded-2xl border border-border bg-card/60 px-4 py-3 text-center text-sm font-medium text-foreground transition active:scale-[0.98]"
-              >
-                Ustawienia
-              </Link>
+              <motion.div whileHover={{ y: -2 }} whileTap={{ scale: 0.97 }} className="flex-1">
+                <Link
+                  to="/menu"
+                  className="flex items-center justify-center gap-1.5 rounded-2xl border border-border bg-card/60 px-4 py-3 text-center text-sm font-medium text-foreground shadow-sm transition hover:bg-card"
+                >
+                  <span aria-hidden>🗂️</span> Poziomy
+                </Link>
+              </motion.div>
+              <motion.div whileHover={{ y: -2 }} whileTap={{ scale: 0.97 }} className="flex-1">
+                <Link
+                  to="/ustawienia"
+                  className="flex items-center justify-center gap-1.5 rounded-2xl border border-border bg-card/60 px-4 py-3 text-center text-sm font-medium text-foreground shadow-sm transition hover:bg-card"
+                >
+                  <span aria-hidden>⚙️</span> Ustawienia
+                </Link>
+              </motion.div>
             </div>
           </>
         ) : (
           <>
-            <Link
-              to="/menu"
-              className="glow-amber group flex items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-4 text-base font-semibold text-primary-foreground transition active:scale-[0.98]"
-            >
-              Zagraj
-              <span className="transition group-hover:translate-x-1">→</span>
-            </Link>
+            <motion.div whileHover={{ y: -2 }} whileTap={{ scale: 0.97 }}>
+              <Link
+                to="/menu"
+                className="glow-amber group flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-b from-primary to-primary/90 px-6 py-4 text-base font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition"
+              >
+                <span aria-hidden>🐾</span>
+                Zagraj
+                <span className="transition group-hover:translate-x-1">→</span>
+              </Link>
+            </motion.div>
             <Link
               to="/ustawienia"
-              className="rounded-2xl border border-border bg-card/60 px-4 py-3 text-center text-sm font-medium text-foreground transition active:scale-[0.98]"
+              className="flex items-center justify-center gap-1.5 rounded-2xl border border-border bg-card/60 px-4 py-3 text-center text-sm font-medium text-foreground shadow-sm transition hover:bg-card active:scale-[0.98]"
             >
-              Ustawienia
+              <span aria-hidden>⚙️</span> Ustawienia
             </Link>
           </>
         )}

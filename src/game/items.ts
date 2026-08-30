@@ -9,4 +9,5 @@ export const ITEMS: Record<ItemId, ItemDef> = {
   chest: { id: "chest", name: "Skrzynia",      emoji: "🧰", description: "Skarb wspomnień." },
   yarn:  { id: "yarn",  name: "Kłębek",        emoji: "🧶", description: "Dar wiewiórki." },
   star:  { id: "star",  name: "Gwiazda",       emoji: "⭐", description: "Spadająca gwiazda." },
+  feather: { id: "feather", name: "Piórko", emoji: "🪶", description: "Dar gołębia z podwórka." },
 };
