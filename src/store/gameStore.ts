@@ -154,6 +154,10 @@ interface GameState {
    *  engine don't add to these yet. */
   totalHops: number;
   totalDistanceWalked: number;
+  /** Session-only flag: when on, levels run as if on "explorer" difficulty
+   *  (no energy drain, no danger damage) regardless of the saved difficulty,
+   *  for stress-free exploration. Not persisted, doesn't touch levelProgress/save. */
+  zenMode: boolean;
 
   // actions
   setVolume: (v: number) => void;
@@ -174,6 +178,7 @@ interface GameState {
   setTutorialStage: (stage: number) => void;
   recordHop: () => void;
   addDistance: (px: number) => void;
+  setZenMode: (v: boolean) => void;
 }
 
 export const useGameStore = create<GameState>()(
@@ -190,7 +195,9 @@ export const useGameStore = create<GameState>()(
       bestLevelTimes: {},
       totalHops: 0,
       totalDistanceWalked: 0,
+      zenMode: false,
 
+      setZenMode: (v) => set({ zenMode: v }),
       recordHop: () => set({ totalHops: get().totalHops + 1 }),
       addDistance: (px) => set({ totalDistanceWalked: get().totalDistanceWalked + px }),
 

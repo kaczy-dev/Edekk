@@ -6,6 +6,7 @@ import { useGameStore } from "@/store/gameStore";
 import { computeQuests, questCompletion } from "@/game/questUtils";
 import { inventoryFromCollected } from "@/game/inventory";
 import { Tilt3D } from "@/components/ui/tilt-3d";
+import { Switch } from "@/components/ui/switch";
 
 
 export const Route = createFileRoute("/menu")({
@@ -22,6 +23,8 @@ function MenuPage() {
   const unlocked = useGameStore((s) => s.unlockedLevels);
   const progress = useGameStore((s) => s.levelProgress);
   const talked = useGameStore((s) => s.talkedNpcs);
+  const zenMode = useGameStore((s) => s.zenMode);
+  const setZenMode = useGameStore((s) => s.setZenMode);
 
   return (
     <main className="min-h-[100dvh] px-6 py-16 md:py-24">
@@ -50,6 +53,21 @@ function MenuPage() {
         >
           Każdy świat ma swoje zadania. Ukończ wszystkie, aby otworzyć kolejne drzwi przed Edkiem.
         </motion.p>
+
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.15 }}
+          className="mt-6 flex items-center justify-between gap-3 rounded-2xl border border-honey/20 bg-honey/5 px-4 py-3"
+        >
+          <div>
+            <span className="text-sm font-medium text-honey">🧘 Tryb Zen</span>
+            <p className="text-xs text-muted-foreground">
+              Bez utraty energii i obrażeń — samo spokojne zwiedzanie.
+            </p>
+          </div>
+          <Switch checked={zenMode} onCheckedChange={setZenMode} />
+        </motion.div>
 
         <div className="mt-10 grid gap-4 md:grid-cols-2">
           {LEVELS.map((l, i) => {

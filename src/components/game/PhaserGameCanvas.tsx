@@ -49,6 +49,10 @@ export function PhaserGameCanvas({ level }: Props) {
 
   const controls = useGameStore((s) => s.controls);
   const difficulty = useGameStore((s) => s.difficulty);
+  const zenMode = useGameStore((s) => s.zenMode);
+  // Zen mode runs the level as "explorer" difficulty (no drain, no danger) for
+  // this session only, without touching the player's saved difficulty setting.
+  const effectiveDifficulty = zenMode ? "explorer" : difficulty;
   const startLevel = useGameStore((s) => s.startLevel);
   const pickUp = useGameStore((s) => s.pickUp);
   const markTalked = useGameStore((s) => s.markTalked);
@@ -86,8 +90,8 @@ export function PhaserGameCanvas({ level }: Props) {
   }, [paused, dialog]);
 
   useEffect(() => {
-    if (sceneRef.current) sceneRef.current.difficulty = difficulty;
-  }, [difficulty]);
+    if (sceneRef.current) sceneRef.current.difficulty = effectiveDifficulty;
+  }, [effectiveDifficulty]);
 
   useEffect(() => {
     if (sceneRef.current) sceneRef.current.sprintMode = controls.sprintMode;
@@ -165,7 +169,7 @@ export function PhaserGameCanvas({ level }: Props) {
       },
       onDanger: (obj: LevelObject) => {
         const state = useGameStore.getState();
-        drain(DIFFICULTIES[state.difficulty].dangerDamage);
+        drain(DIFFICULTIES[state.zenMode ? "explorer" : state.difficulty].dangerDamage);
         if (controls.vibration && "vibrate" in navigator) navigator.vibrate?.(80);
         audio.playDanger(state.muted ? 0 : state.volume);
         setDialog(obj.message ?? "Uważaj!");
@@ -206,7 +210,7 @@ export function PhaserGameCanvas({ level }: Props) {
         collected,
         initialPos,
         initialEnergy: useGameStore.getState().energy,
-        difficulty: useGameStore.getState().difficulty,
+        difficulty: effectiveDifficulty,
         renderQuality: useGameStore.getState().controls.renderQuality,
         onReady: (scene) => {
           if (cancelled) return;

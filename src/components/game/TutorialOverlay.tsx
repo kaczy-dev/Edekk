@@ -59,8 +59,10 @@ export function TutorialOverlay({ stage }: Props) {
             <p className="mt-4 text-base text-white/85">{current.desc}</p>
 
             <motion.div
-              animate={{ scale: [1, 1.05, 1] }}
-              transition={{ duration: 1.5, repeat: Infinity }}
+              key={`step-${stage}`}
+              initial={{ scale: 0.85, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
               className="mt-6 inline-block rounded-2xl border border-honey bg-honey/20 px-4 py-2 text-xs text-honey"
             >
               {stage}/4
