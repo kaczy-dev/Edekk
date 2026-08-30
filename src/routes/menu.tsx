@@ -141,7 +141,7 @@ function MenuPage() {
                           <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Zablokowane</div>
                         </span>
                       </div>
-                      {i < LEVELS.length - 1 && !unlocked.includes(LEVELS[i + 1].id) && unlocked.includes(l.id) && (
+                      {i > 0 && unlocked.includes(LEVELS[i - 1].id) && (
                         <span className="absolute right-3 top-3 rounded-full border border-honey/60 bg-honey/10 px-3 py-1 text-xs font-semibold text-honey">
                           ➜ Następny
                         </span>

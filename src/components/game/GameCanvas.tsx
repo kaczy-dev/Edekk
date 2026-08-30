@@ -38,6 +38,9 @@ export function GameCanvas({ level }: Props) {
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const saveIndicatorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSaveIndicatorRef = useRef(0);
+  const autoPausedRef = useRef(false);
+  const pausedRef = useRef(false);
+  const dialogRef = useRef<string | null>(null);
 
   const controls = useGameStore((s) => s.controls);
   const difficulty = useGameStore((s) => s.difficulty);
@@ -103,6 +106,8 @@ export function GameCanvas({ level }: Props) {
   }, []);
 
   useEffect(() => {
+    pausedRef.current = paused;
+    dialogRef.current = dialog;
     if (engineRef.current) engineRef.current.paused = paused || !!dialog;
   }, [paused, dialog]);
 
@@ -272,7 +277,18 @@ export function GameCanvas({ level }: Props) {
     const onHide = () => {
       const e = engineRef.current;
       if (!e) return;
-      if (document.hidden) e.paused = true;
+      if (document.hidden) {
+        // Only remember this as an auto-pause if the player wasn't already
+        // paused/in a dialog — otherwise returning to the tab would resume
+        // a game the player had deliberately paused.
+        if (!e.paused) {
+          autoPausedRef.current = true;
+          e.paused = true;
+        }
+      } else if (autoPausedRef.current) {
+        autoPausedRef.current = false;
+        e.paused = pausedRef.current || !!dialogRef.current;
+      }
       setSave({
         levelId: level.id,
         pos: { x: Math.round(e.pos.x), y: Math.round(e.pos.y) },
