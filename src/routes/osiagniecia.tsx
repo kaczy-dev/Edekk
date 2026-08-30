@@ -42,7 +42,8 @@ function AchievementsPage() {
           Zbierz odznaki i udowodnij swoją mistrzostwo w światach Edka.
         </p>
 
-        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-10 rounded-3xl border border-border bg-card/30 p-8 paper-grain">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {ACHIEVEMENTS.map((ach, i) => (
             <motion.div
               key={ach.id}
@@ -60,6 +61,7 @@ function AchievementsPage() {
               </div>
             </motion.div>
           ))}
+          </div>
         </div>
       </div>
     </main>

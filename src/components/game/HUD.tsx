@@ -6,6 +6,7 @@ import { useGoalTracks, type GoalTrack } from "@/game/goalTracking";
 import { TIER_ORDER, tierStyle } from "@/game/tierStyle";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 
 /** Stable fallback so absent store entries keep one reference across selector calls. */
@@ -173,13 +174,20 @@ export function HUD({ level, onPause, sprinting, getCatPos, onShowControls }: Pr
         </div>
         <div className="flex gap-2">
           {onShowControls && (
-            <button
-              onClick={onShowControls}
-              className="pointer-events-auto rounded-full border border-white/15 bg-black/45 px-3 py-2 text-sm font-medium text-white/70 backdrop-blur-md transition hover:bg-black/60 hover:text-white"
-              aria-label="Pokaż sterowanie"
-            >
-              ?
-            </button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={onShowControls}
+                    className="pointer-events-auto rounded-full border border-white/15 bg-black/45 px-3 py-2 text-sm font-medium text-white/70 backdrop-blur-md transition hover:bg-black/60 hover:text-white"
+                    aria-label="Pokaż sterowanie"
+                  >
+                    ?
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>Sterowanie i podpowiedzi</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )}
           <button
             onClick={onPause}
@@ -248,14 +256,27 @@ export function HUD({ level, onPause, sprinting, getCatPos, onShowControls }: Pr
                 <div className="flex flex-col gap-1 sm:gap-2 sm:flex-wrap sm:flex-row">
                   {TIER_ORDER.map((tier) => {
                     const st = tierStyle(tier, colorBlind);
+                    const descriptions: Record<typeof tier, string> = {
+                      at: "Tuż obok celu",
+                      near: "Niedaleko, powinieneś być blisko",
+                      mid: "Średni dystans do pokonania",
+                      far: "Daleko, musisz się wiele poruszać",
+                    };
                     return (
-                      <div key={tier} className="flex items-center gap-1 sm:gap-1.5 text-[9px] sm:text-[10px]">
-                        <LegendSwatch shape={st.swatchShape} color={st.swatch} />
-                        <span className="text-white/80 whitespace-nowrap">
-                          {st.glyph ? `${st.glyph} ` : ""}
-                          {st.label}
-                        </span>
-                      </div>
+                      <TooltipProvider key={tier}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="flex items-center gap-1 sm:gap-1.5 text-[9px] sm:text-[10px] cursor-help">
+                              <LegendSwatch shape={st.swatchShape} color={st.swatch} />
+                              <span className="text-white/80 whitespace-nowrap">
+                                {st.glyph ? `${st.glyph} ` : ""}
+                                {st.label}
+                              </span>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>{descriptions[tier]}</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     );
                   })}
                 </div>
