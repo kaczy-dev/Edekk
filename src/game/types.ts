@@ -56,5 +56,7 @@ export interface LevelDef {
   /** structured checklist of tasks shown in HUD and journal */
   quests: QuestStep[];
   objects: LevelObject[];
+  /** Optional point light source in world space: { position, color, intensity } */
+  pointLight?: { x: number; y: number; color: string; intensity: number };
 }
 

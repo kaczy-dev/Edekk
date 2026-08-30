@@ -424,6 +424,15 @@ export class GameEngine {
         this.drawShadow(ctx, CAT_SIZE / 2.2, 1 - Math.abs(bob) * 0.015, CAT_SIZE / 2 - 6);
         ctx.rotate(this.renderAngle);
         this.drawCat(ctx);
+        // Subtle rim light in the direction opposite to the key light
+        const rimLight = this.getLightSprite();
+        if (rimLight) {
+          const S = CAT_SIZE * 1.8;
+          ctx.globalCompositeOperation = "lighter";
+          ctx.globalAlpha = 0.08 * (1 + this.runBlend * 0.5);
+          ctx.drawImage(rimLight, -S / 2 + this.lightDir.x * 20, -S / 2 + this.lightDir.y * 20, S, S);
+          ctx.globalCompositeOperation = "source-over";
+        }
         ctx.restore();
       } else {
         this.drawObject(ctx, a.obj, zoom);
@@ -482,6 +491,23 @@ export class GameEngine {
       ctx.globalAlpha = this.level.ambient === "day" ? 0.75 : 1;
       ctx.drawImage(light, catSX - r, catSY - r, r * 2, r * 2);
       ctx.restore();
+    }
+
+    // Fixed point light sources (e.g. fireplace flicker)
+    if (this.level.pointLight) {
+      const ptLight = this.getPointLightSprite();
+      if (ptLight) {
+        const px = (this.level.pointLight.x - camX) * zoom;
+        const py = (this.level.pointLight.y - camY) * zoom;
+        const baseR = 200 * zoom;
+        const flicker = 1 + Math.sin(performance.now() / 200) * 0.25 + Math.random() * 0.1;
+        const r = baseR * flicker * this.level.pointLight.intensity;
+        ctx.save();
+        ctx.globalCompositeOperation = "soft-light";
+        ctx.globalAlpha = 0.35 * this.level.pointLight.intensity;
+        ctx.drawImage(ptLight, px - r, py - r, r * 2, r * 2);
+        ctx.restore();
+      }
     }
   }
 
@@ -560,10 +586,19 @@ export class GameEngine {
     const hover = o.kind === "item" ? Math.sin(now / 520 + cx) * 3 : 0;
     const tint = o.kind === "item" ? "#ffd76b" : o.kind === "npc" ? "#9be38a" : "#7ec3ff";
 
-    // drawShadow works in the current transform, so anchor it on the object first.
+    // Soft contact shadow with multiple layers for depth
     ctx.save();
     ctx.translate(cx, cy);
-    this.drawShadow(ctx, span * 0.3, 1, o.rect.h / 2 + 2);
+    const dir = this.lightDir;
+    ctx.globalAlpha = 0.2;
+    for (let i = 0; i < 3; i++) {
+      const alpha = 0.34 / (i + 1);
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = "#000";
+      ctx.beginPath();
+      ctx.ellipse(-dir.x * span * 0.45, o.rect.h / 2 + dir.y * 2 + i * 2, span * 0.3 + i * 3, 7 + i * 1, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
     ctx.restore();
 
     // Additive bloom reads as the object emitting light rather than sitting on a disc.
@@ -610,6 +645,7 @@ export class GameEngine {
   private vignette: CanvasGradient | null = null;
   private vignetteKey = "";
   private lightSprite: HTMLCanvasElement | null = null;
+  private pointLightSprite: HTMLCanvasElement | null = null;
 
   /**
    * Radial falloff baked into a sprite once, so the per-frame cost of the light
@@ -631,6 +667,25 @@ export class GameEngine {
     cctx.fillStyle = g;
     cctx.fillRect(0, 0, S, S);
     this.lightSprite = c;
+    return c;
+  }
+
+  /** Bake a warm point light for fixed light sources like a fireplace. */
+  private getPointLightSprite(): HTMLCanvasElement | null {
+    if (this.pointLightSprite) return this.pointLightSprite;
+    const S = 256;
+    const c = document.createElement("canvas");
+    c.width = S;
+    c.height = S;
+    const cctx = c.getContext("2d");
+    if (!cctx) return null;
+    const g = cctx.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S / 2);
+    g.addColorStop(0, "rgba(255,140,60,0.9)");
+    g.addColorStop(0.4, "rgba(255,100,40,0.4)");
+    g.addColorStop(1, "rgba(255,80,30,0)");
+    cctx.fillStyle = g;
+    cctx.fillRect(0, 0, S, S);
+    this.pointLightSprite = c;
     return c;
   }
 

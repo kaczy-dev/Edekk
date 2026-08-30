@@ -16,9 +16,10 @@ interface Props {
   onPause: () => void;
   sprinting?: boolean;
   getCatPos?: () => { x: number; y: number } | null;
+  onShowControls?: () => void;
 }
 
-export function HUD({ level, onPause, sprinting, getCatPos }: Props) {
+export function HUD({ level, onPause, sprinting, getCatPos, onShowControls }: Props) {
   const energy = useGameStore((s) => s.energy);
   const inventory = useGameStore((s) => s.inventory);
   const talked = useGameStore((s) => s.talkedNpcs[level.id] ?? NO_IDS);
@@ -170,12 +171,23 @@ export function HUD({ level, onPause, sprinting, getCatPos }: Props) {
             )}
           </AnimatePresence>
         </div>
-        <button
-          onClick={onPause}
-          className="pointer-events-auto rounded-full border border-white/15 bg-black/45 px-4 py-2 text-sm font-medium text-white backdrop-blur-md transition hover:bg-black/60"
-        >
-          Pauza
-        </button>
+        <div className="flex gap-2">
+          {onShowControls && (
+            <button
+              onClick={onShowControls}
+              className="pointer-events-auto rounded-full border border-white/15 bg-black/45 px-3 py-2 text-sm font-medium text-white/70 backdrop-blur-md transition hover:bg-black/60 hover:text-white"
+              aria-label="Pokaż sterowanie"
+            >
+              ?
+            </button>
+          )}
+          <button
+            onClick={onPause}
+            className="pointer-events-auto rounded-full border border-white/15 bg-black/45 px-4 py-2 text-sm font-medium text-white backdrop-blur-md transition hover:bg-black/60"
+          >
+            Pauza
+          </button>
+        </div>
       </div>
 
       <div className="mt-3 pointer-events-auto w-56 max-w-[60vw] rounded-2xl border border-white/10 bg-black/40 p-1.5 backdrop-blur-md">

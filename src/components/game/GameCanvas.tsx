@@ -8,6 +8,8 @@ import { ITEMS } from "@/game/items";
 import { NPC_GIFTS, giftObjId } from "@/game/inventory";
 import { HUD } from "./HUD";
 import { DialogBox } from "./DialogBox";
+import { Toast } from "./Toast";
+import { ControlsModal } from "./ControlsModal";
 import { PauseMenu } from "./PauseMenu";
 import { VirtualJoystick } from "./VirtualJoystick";
 import { DPad } from "./DPad";
@@ -26,14 +28,17 @@ export function GameCanvas({ level }: Props) {
   const navigate = useNavigate();
 
   const [dialog, setDialog] = useState<string | null>(level.intro);
+  const [toast, setToast] = useState<string | null>(null);
   const [paused, setPaused] = useState(false);
   const [nearby, setNearby] = useState<LevelObject | null>(null);
   const [sprinting, setSprinting] = useState(false);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const controls = useGameStore((s) => s.controls);
   const difficulty = useGameStore((s) => s.difficulty);
   const showHintsPref = controls.showHints;
   const [showHint, setShowHint] = useState(showHintsPref);
+  const [showHintModal, setShowHintModal] = useState(false);
 
   useEffect(() => {
     if (!showHintsPref) { setShowHint(false); return; }
@@ -80,6 +85,23 @@ export function GameCanvas({ level }: Props) {
   useEffect(() => {
     if (engineRef.current) engineRef.current.input.setSettings(controls);
   }, [controls]);
+
+  // Navigate to next level when dialog closes after goal completion
+  useEffect(() => {
+    if (dialog === null) {
+      const state = useGameStore.getState();
+      const idx = LEVELS.findIndex((l) => l.id === level.id);
+      const isCompleted = state.levelProgress[level.id]?.completed ?? false;
+      if (isCompleted) {
+        const next = LEVELS[idx + 1];
+        setTimeout(() => {
+          if (next) navigate({ to: "/poziom/$id", params: { id: next.id } });
+          else navigate({ to: "/koniec" });
+        }, 300);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dialog]);
 
   useEffect(() => {
     if (engineRef.current) engineRef.current.difficulty = difficulty;
@@ -128,7 +150,9 @@ export function GameCanvas({ level }: Props) {
       onPickUp: (obj: LevelObject) => {
         if (!obj.itemId) return;
         pickUp(obj.itemId, obj.id, level.id);
-        setDialog(`${ITEMS[obj.itemId].emoji}  Edek bierze: ${ITEMS[obj.itemId].name}`);
+        if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+        setToast(`${ITEMS[obj.itemId].emoji}  ${ITEMS[obj.itemId].name}`);
+        toastTimerRef.current = setTimeout(() => setToast(null), 1500);
       },
       onTalk: (obj: LevelObject) => {
         setDialog(obj.message ?? "...");
@@ -150,15 +174,12 @@ export function GameCanvas({ level }: Props) {
             return;
           }
         }
-        setDialog(obj.message ?? "Cel osiągnięty!");
         const idx = LEVELS.findIndex((l) => l.id === level.id);
         const next = LEVELS[idx + 1];
         completeLevel(level.id, next?.id);
         clearSave();
-        setTimeout(() => {
-          if (next) navigate({ to: "/poziom/$id", params: { id: next.id } });
-          else navigate({ to: "/koniec" });
-        }, 1800);
+        setDialog(obj.message ?? "Cel osiągnięty!");
+        // Navigation happens in a useEffect watching for dialog close + completion
       },
       onDanger: (obj: LevelObject) => {
         drain(DIFFICULTIES[useGameStore.getState().difficulty].dangerDamage);
@@ -285,6 +306,7 @@ export function GameCanvas({ level }: Props) {
         onPause={() => setPaused(true)}
         sprinting={sprinting}
         getCatPos={getCatPos}
+        onShowControls={() => setShowHintModal(true)}
       />
       <GoalArrows
         level={level}
@@ -309,6 +331,13 @@ export function GameCanvas({ level }: Props) {
       </AnimatePresence>
 
       <DialogBox text={dialog} onClose={() => setDialog(null)} />
+      <Toast text={toast} />
+      <ControlsModal
+        open={showHintModal}
+        onClose={() => setShowHintModal(false)}
+        difficulty={difficulty}
+        sprintMode={controls.sprintMode}
+      />
 
       <AnimatePresence>
         {showHint && !paused && (

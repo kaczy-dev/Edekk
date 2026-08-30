@@ -27,9 +27,11 @@ export const LEVELS: LevelDef[] = [
       { id: "q1-ball", kind: "collect", itemId: "ball", count: 1, label: "Znajdź piłeczkę" },
       { id: "q1-door", kind: "reach", objId: "door", label: "Wyjdź drzwiami do ogrodu" },
     ],
+    pointLight: { x: 800, y: 180, color: "rgba(255,140,60,0.8)", intensity: 0.6 },
     objects: [
-      { id: "rug", kind: "obstacle", rect: { x: 450, y: 250, w: 700, h: 450 } },
-      { id: "sofa", kind: "obstacle", rect: { x: 600, y: 100, w: 400, h: 180 } },
+      { id: "sofa", kind: "obstacle", rect: { x: 600, y: 100, w: 400, h: 220 } },
+      { id: "table", kind: "obstacle", rect: { x: 720, y: 320, w: 160, h: 140 } },
+      { id: "armchair", kind: "obstacle", rect: { x: 480, y: 280, w: 120, h: 120 } },
       { id: "shelf", kind: "obstacle", rect: { x: 60, y: 100, w: 140, h: 350 } },
       { id: "shelf2", kind: "obstacle", rect: { x: 1400, y: 100, w: 140, h: 400 } },
       { id: "i-bowl", kind: "item", itemId: "bowl", rect: { x: 1300, y: 720, w: 60, h: 60 } },
