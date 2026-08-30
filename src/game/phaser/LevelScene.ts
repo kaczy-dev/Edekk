@@ -131,6 +131,16 @@ export class LevelScene extends Phaser.Scene {
   private baseZoom = 1;
   private zoomTween?: Phaser.Tweens.Tween;
 
+  // --- Layers (optional depth-band overrides, see `LevelLayerDef`) -------
+  private bgImage!: Phaser.GameObjects.Image;
+  private layerDepths: Record<import("@/game/types").LevelLayerKind, number> = {
+    background: 0,
+    scenery: 5,
+    world: 15,
+    light: 2,
+    foreground: 20_000,
+  };
+
   // --- Particles (footsteps, sprint trail, hop dust) ----------------------
   private dust!: Phaser.GameObjects.Particles.ParticleEmitter;
   private ghostAcc = 0;
@@ -195,7 +205,10 @@ export class LevelScene extends Phaser.Scene {
     this.physics.world.setBounds(0, 0, width, height);
     this.cameras.main.setBounds(0, 0, width, height);
 
-    this.add.image(0, 0, "bg").setOrigin(0, 0).setDisplaySize(width, height);
+    this.setupLayers();
+
+    this.bgImage = this.add.image(0, 0, "bg").setOrigin(0, 0).setDisplaySize(width, height);
+    this.bgImage.setDepth(this.layerDepths.background);
 
     this.sliceCatFrames();
 
@@ -356,6 +369,22 @@ export class LevelScene extends Phaser.Scene {
   }
 
   /**
+   * Applies `level.layers` (if the level defines it) on top of the default
+   * depth bands. Purely a lookup-table override for the *fixed-position*
+   * render layers (background image, ambient light glows, particle
+   * emitters, foreground leaves) — the y-sorted cat/NPC/scenery-icon depth
+   * logic elsewhere in this file is untouched, so a level that omits
+   * `layers` renders with exactly the same depths as before this method
+   * existed.
+   */
+  private setupLayers() {
+    if (!this.level.layers) return;
+    for (const layer of this.level.layers) {
+      this.layerDepths[layer.id] = layer.depth;
+    }
+  }
+
+  /**
    * Renders `level.pointLight` (already present in level data, previously
    * only read by the legacy Canvas2D engine) as a soft additive glow, plus a
    * smaller warm light that follows the cat — the same two-light idea the
@@ -382,7 +411,7 @@ export class LevelScene extends Phaser.Scene {
       fixedGlow.setTint(color.color);
       fixedGlow.setAlpha(pl.intensity);
       fixedGlow.setScale(2.4);
-      fixedGlow.setDepth(2);
+      fixedGlow.setDepth(this.layerDepths.light);
       // Gentle flicker so the fixed light doesn't read as a static decal.
       this.tweens.add({
         targets: fixedGlow,
@@ -401,7 +430,7 @@ export class LevelScene extends Phaser.Scene {
       this.catLight.setTint(0xffdca8);
       this.catLight.setAlpha(0.28);
       this.catLight.setScale(1.1);
-      this.catLight.setDepth(2);
+      this.catLight.setDepth(this.layerDepths.light);
     }
   }
 
@@ -490,7 +519,7 @@ export class LevelScene extends Phaser.Scene {
     // Above the cat/world/cat-light but below the HTML HUD (which lives
     // outside the canvas entirely) — this is what makes it read as "in
     // front of the camera" rather than just another world layer.
-    leaves.setDepth(20_000);
+    leaves.setDepth(this.layerDepths.foreground);
     leaves.setScrollFactor(1.08); // very slight foreground parallax
   }
 
@@ -506,10 +535,23 @@ export class LevelScene extends Phaser.Scene {
    */
   private setupPostFX() {
     const cam = this.cameras.main;
+    const mood = this.level.mood;
     // Vignette in screen space (external); color grade in camera-local
     // space before the transform (internal) — matches the v4 filter split.
-    cam.filters.external.addVignette(0.5, 0.5, 0.82, 0.35);
+    cam.filters.external.addVignette(0.5, 0.5, 0.82, mood?.vignetteStrength ?? 0.35);
     const grade = cam.filters.internal.addColorMatrix();
+
+    if (mood) {
+      // Per-level hand-authored mood (see `LevelMood`) takes over entirely
+      // instead of blending with the generic day/night grade below — each
+      // level's authored numbers already account for its own `ambient`.
+      if (mood.sepia) grade.colorMatrix.sepia();
+      if (mood.brightness !== undefined) grade.colorMatrix.brightness(mood.brightness);
+      if (mood.contrast !== undefined) grade.colorMatrix.contrast(mood.contrast);
+      if (mood.saturate !== undefined) grade.colorMatrix.saturate(mood.saturate);
+      if (mood.hue !== undefined) grade.colorMatrix.hue(mood.hue);
+      return;
+    }
 
     const night = this.level.ambient === "night" ? 1 : this.level.ambient === "dim" ? 0.5 : 0;
     const lerp = (day: number, nightVal: number) => Phaser.Math.Linear(day, nightVal, night);
