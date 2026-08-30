@@ -24,6 +24,7 @@ function TitleScreen() {
   const save = useGameStore((s) => s.save);
   const resumeLevel = save ? getLevel(save.levelId) : null;
   const [showReal, setShowReal] = useState(false);
+  const reducedMotion = useGameStore((s) => s.controls.reducedMotion);
 
   return (
     <ParallaxHero className="relative flex h-[100dvh] flex-col overflow-hidden">
@@ -66,7 +67,7 @@ function TitleScreen() {
           className="relative"
         >
           <motion.div
-            animate={{ y: [0, -8, 0] }}
+            animate={reducedMotion ? undefined : { y: [0, -8, 0] }}
             transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
           >
             <Tilt3D
@@ -78,7 +79,7 @@ function TitleScreen() {
                 type="button"
                 onClick={() => setShowReal((v) => !v)}
                 aria-label={showReal ? "Pokaż rysunkową wersję Edka" : "Pokaż prawdziwego Edka"}
-                className="glow-amber relative block h-full w-full rounded-full border-[3px] border-honey/50 bg-card p-1.5"
+                className="glow-amber relative block h-full w-full rounded-full border-[3px] border-honey/50 bg-card p-1.5 outline-none focus-visible:ring-2 focus-visible:ring-honey focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 style={{ perspective: 800 }}
               >
                 <motion.div
@@ -98,6 +99,7 @@ function TitleScreen() {
                       className="h-full w-full object-cover"
                       width={400}
                       height={400}
+                      fetchPriority="high"
                     />
                   </div>
                   {/* Back: the real cat that inspired the game */}
@@ -188,7 +190,7 @@ function TitleScreen() {
               <Link
                 to="/poziom/$id"
                 params={{ id: resumeLevel.id }}
-                className="glow-amber group flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-b from-primary to-primary/90 px-6 py-4 text-base font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition"
+                className="glow-amber group flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-b from-primary to-primary/90 px-6 py-4 text-base font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition outline-none focus-visible:ring-2 focus-visible:ring-honey focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               >
                 <span aria-hidden>🐾</span>
                 Wznów: {resumeLevel.title}
@@ -199,7 +201,7 @@ function TitleScreen() {
               <motion.div whileHover={{ y: -2 }} whileTap={{ scale: 0.97 }} className="flex-1">
                 <Link
                   to="/menu"
-                  className="flex items-center justify-center gap-1.5 rounded-2xl border border-border bg-card/60 px-4 py-3 text-center text-sm font-medium text-foreground shadow-sm transition hover:bg-card"
+                  className="flex items-center justify-center gap-1.5 rounded-2xl border border-border bg-card/60 px-4 py-3 text-center text-sm font-medium text-foreground shadow-sm transition hover:bg-card outline-none focus-visible:ring-2 focus-visible:ring-honey focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 >
                   <span aria-hidden>🗂️</span> Poziomy
                 </Link>
@@ -207,7 +209,7 @@ function TitleScreen() {
               <motion.div whileHover={{ y: -2 }} whileTap={{ scale: 0.97 }} className="flex-1">
                 <Link
                   to="/ustawienia"
-                  className="flex items-center justify-center gap-1.5 rounded-2xl border border-border bg-card/60 px-4 py-3 text-center text-sm font-medium text-foreground shadow-sm transition hover:bg-card"
+                  className="flex items-center justify-center gap-1.5 rounded-2xl border border-border bg-card/60 px-4 py-3 text-center text-sm font-medium text-foreground shadow-sm transition hover:bg-card outline-none focus-visible:ring-2 focus-visible:ring-honey focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 >
                   <span aria-hidden>⚙️</span> Ustawienia
                 </Link>
@@ -219,7 +221,7 @@ function TitleScreen() {
             <motion.div whileHover={{ y: -2 }} whileTap={{ scale: 0.97 }}>
               <Link
                 to="/menu"
-                className="glow-amber group flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-b from-primary to-primary/90 px-6 py-4 text-base font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition"
+                className="glow-amber group flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-b from-primary to-primary/90 px-6 py-4 text-base font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition outline-none focus-visible:ring-2 focus-visible:ring-honey focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               >
                 <span aria-hidden>🐾</span>
                 Zagraj
@@ -228,7 +230,7 @@ function TitleScreen() {
             </motion.div>
             <Link
               to="/ustawienia"
-              className="flex items-center justify-center gap-1.5 rounded-2xl border border-border bg-card/60 px-4 py-3 text-center text-sm font-medium text-foreground shadow-sm transition hover:bg-card active:scale-[0.98]"
+              className="flex items-center justify-center gap-1.5 rounded-2xl border border-border bg-card/60 px-4 py-3 text-center text-sm font-medium text-foreground shadow-sm transition hover:bg-card active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-honey focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
               <span aria-hidden>⚙️</span> Ustawienia
             </Link>
