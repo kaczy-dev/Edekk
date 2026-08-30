@@ -33,6 +33,7 @@ export function HUD({ level, onPause, sprinting, getCatPos, onShowControls }: Pr
   const legendAutoCollapseSec = useGameStore((s) => s.controls.legendAutoCollapseSec);
   const legendExpanded = useGameStore((s) => s.controls.legendExpanded);
   const setControls = useGameStore((s) => s.setControls);
+  const savedAt = useGameStore((s) => s.save?.savedAt);
   const [open, setOpen] = useState(true);
   const [expandedQuest, setExpandedQuest] = useState<string | null>(null);
   const [onlyActive, setOnlyActive] = useState(false);
@@ -87,6 +88,22 @@ export function HUD({ level, onPause, sprinting, getCatPos, onShowControls }: Pr
     const t = setTimeout(() => setFlashIds(new Set()), 1400);
     return () => clearTimeout(t);
   }, [statuses]);
+
+  // Flash a brief "Zapisano" pill whenever the autosave writes — skips the
+  // very first save this component sees (entering/resuming a level) so it
+  // only fires for saves that happen while the player is actually here.
+  const [showSaved, setShowSaved] = useState(false);
+  const sawFirstSaveRef = useRef(false);
+  useEffect(() => {
+    if (savedAt === undefined) return;
+    if (!sawFirstSaveRef.current) {
+      sawFirstSaveRef.current = true;
+      return;
+    }
+    setShowSaved(true);
+    const t = setTimeout(() => setShowSaved(false), 1800);
+    return () => clearTimeout(t);
+  }, [savedAt]);
 
   // Auto-open the checklist briefly when a quest completes so the tick is visible.
   useEffect(() => {
@@ -410,6 +427,22 @@ export function HUD({ level, onPause, sprinting, getCatPos, onShowControls }: Pr
           <span className="px-2 py-1 text-xs text-white/50">Pusty plecak</span>
         )}
       </div>
+
+      <AnimatePresence>
+        {showSaved && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 8 }}
+            transition={{ duration: 0.3 }}
+            className="pointer-events-none absolute bottom-4 left-4 flex items-center gap-1.5 rounded-full border border-white/10 bg-black/50 px-3 py-1.5 text-[11px] text-white/70 backdrop-blur-md"
+            role="status"
+            aria-live="polite"
+          >
+            <span aria-hidden>💾</span> Zapisano
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

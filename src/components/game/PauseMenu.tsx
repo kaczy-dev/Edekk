@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { Link, useRouter } from "@tanstack/react-router";
+import { useRouter } from "@tanstack/react-router";
+import { useEffect, useRef } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,8 +23,50 @@ interface Props {
   level?: LevelDef;
 }
 
+const FOCUSABLE_SELECTOR =
+  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 export function PauseMenu({ open, onResume, onRestart, level }: Props) {
   const router = useRouter();
+  const panelRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLElement | null>(null);
+
+  // Focus trap: move focus into the panel on open, cycle Tab within it, close
+  // on Escape, and restore focus to whatever opened the menu on close — the
+  // game canvas has no other focusable elements, so without this Tab would
+  // otherwise silently leave the dialog with nothing visibly focused.
+  useEffect(() => {
+    if (!open) return;
+    triggerRef.current = document.activeElement as HTMLElement | null;
+    const firstFocusable = panelRef.current?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
+    firstFocusable?.focus();
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onResume();
+        return;
+      }
+      if (e.key !== "Tab" || !panelRef.current) return;
+      const focusables = Array.from(panelRef.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      triggerRef.current?.focus();
+    };
+  }, [open, onResume]);
+
   return (
     <AnimatePresence>
       {open && (
@@ -34,12 +77,16 @@ export function PauseMenu({ open, onResume, onRestart, level }: Props) {
           className="absolute inset-0 z-50 flex items-center justify-center scrim"
         >
           <motion.div
+            ref={panelRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="pause-menu-title"
             initial={{ scale: 0.9, y: 20 }}
             animate={{ scale: 1, y: 0 }}
             exit={{ scale: 0.95, y: 10 }}
             className="w-80 panel-glass p-6 text-center shadow-2xl"
           >
-            <h3 className="font-display text-3xl font-semibold text-honey">Pauza</h3>
+            <h3 id="pause-menu-title" className="font-display text-3xl font-semibold text-honey">Pauza</h3>
             <p className="mt-1 text-sm text-muted-foreground">Edek czeka spokojnie.</p>
 
             {level && <LevelMinimap level={level} />}
