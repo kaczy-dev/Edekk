@@ -67,11 +67,11 @@ export function GameCanvas({ level }: Props) {
   const drain = useGameStore((s) => s.drainEnergy);
   const restore = useGameStore((s) => s.restoreEnergy);
   const completeLevel = useGameStore((s) => s.completeLevel);
-  const _setSave = useGameStore((s) => s.setSave);
+  const storeSave = useGameStore((s) => s.setSave);
   const clearSave = useGameStore((s) => s.clearSave);
 
-  const setSave = (save: Parameters<typeof _setSave>[0]) => {
-    _setSave(save);
+  const setSave = (save: Parameters<typeof storeSave>[0]) => {
+    storeSave(save);
     const now = Date.now();
     if (now - lastSaveIndicatorRef.current >= 10000) {
       lastSaveIndicatorRef.current = now;
@@ -292,6 +292,8 @@ export function GameCanvas({ level }: Props) {
       window.removeEventListener("pagehide", onHide);
       document.removeEventListener("visibilitychange", onHide);
       if (saveTimer) clearInterval(saveTimer);
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+      if (saveIndicatorTimerRef.current) clearTimeout(saveIndicatorTimerRef.current);
       onHide();
       engineRef.current?.stop();
       engineRef.current = null;

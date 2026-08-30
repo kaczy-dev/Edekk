@@ -2,6 +2,15 @@ import { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGameStore } from "@/store/gameStore";
 
+enum TutorialStage {
+  NotStarted = 0,
+  Move = 1,
+  Sprint = 2,
+  Interact = 3,
+  Ready = 4,
+  Complete = 5,
+}
+
 interface Props {
   stage: number;
 }
@@ -20,9 +29,9 @@ export function TutorialOverlay({ stage }: Props) {
 
   // Auto-advance after 4 seconds
   useEffect(() => {
-    if (stage < 1 || stage >= 5) return;
+    if (stage < TutorialStage.Move || stage >= TutorialStage.Complete) return;
     const timer = setTimeout(() => {
-      if (stage === 4) setTutorialStage(5);
+      if (stage === TutorialStage.Ready) setTutorialStage(TutorialStage.Complete);
       else setTutorialStage(stage + 1);
     }, 4000);
     return () => clearTimeout(timer);
@@ -32,7 +41,7 @@ export function TutorialOverlay({ stage }: Props) {
 
   return (
     <AnimatePresence>
-      {stage > 0 && stage < 5 && (
+      {stage > TutorialStage.NotStarted && stage < TutorialStage.Complete && (
         <motion.div
           key={`tutorial-${stage}`}
           initial={{ opacity: 0, scale: 0.95 }}
