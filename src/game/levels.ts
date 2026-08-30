@@ -256,7 +256,8 @@ export const LEVELS: LevelDef[] = [
     height: H,
     spawn: { x: 750, y: 850 },
     ambient: "day",
-    ambientFx: "motes",
+    // Overcast blokowisko courtyard: drifting dust, not fireflies/petals.
+    ambientFx: "dust",
     // Overcast: flattened contrast, muted saturation, no warm hue push.
     mood: { brightness: 0.97, contrast: 0.94, saturate: -0.18, hue: 0 },
     intro: "Ktoś zostawił furtkę do ogrodu za blokiem uchyloną. Edek wymyka się między kwietniki.",

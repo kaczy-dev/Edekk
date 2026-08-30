@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import type { LevelDef, LevelObject, Vec2 } from "@/game/types";
+import type { LevelDef, LevelObject, LevelObjectKind, Vec2 } from "@/game/types";
 import { ITEMS } from "@/game/items";
 import { DIFFICULTIES, type Difficulty, type RenderQuality } from "@/store/gameStore";
 
@@ -117,6 +117,12 @@ export class LevelScene extends Phaser.Scene {
   private cat!: Phaser.Physics.Arcade.Sprite;
   private catShadow!: Phaser.GameObjects.Ellipse;
   private catLight?: Phaser.GameObjects.Image;
+  /** True once `setupWorldLighting` has enabled Phaser's WebGL-only Lights2D pipeline. */
+  private useLights2D = false;
+  /** Real Phaser Light for `level.pointLight`, when running under WebGL. */
+  private fixedLight?: Phaser.GameObjects.Light;
+  /** Real Phaser Light following the cat at night/dim, when running under WebGL. */
+  private catPointLight?: Phaser.GameObjects.Light;
   private hopReadyGlow!: Phaser.GameObjects.Image;
   private baseScaleX = 1;
   private baseScaleY = 1;
@@ -126,6 +132,15 @@ export class LevelScene extends Phaser.Scene {
   private nearestInteractable: LevelObject | null = null;
   private objSprites = new Map<string, Phaser.GameObjects.Text>();
   private interactIcon!: Phaser.GameObjects.Text;
+  /**
+   * Per-kind interaction dispatch, built once in `create()`. Replaces two
+   * separate if/else chains (one in the overlap callback for kinds reached
+   * by walking into them, one in `update()`'s interact-key handling for
+   * kinds reached by pressing E) with a single table both sites consult —
+   * adding a new interactable kind means adding one entry here, not editing
+   * two call sites.
+   */
+  private interactionHandlers: Partial<Record<LevelObjectKind, (obj: LevelObject) => void>> = {};
 
   // --- NPC patrol: simple back-and-forth walk for `npc` objects that opt in
   //     via `LevelObject.patrol`. Keyed by object id; static NPCs (the
@@ -304,14 +319,20 @@ export class LevelScene extends Phaser.Scene {
 
     this.physics.add.collider(this.cat, obstacles);
 
+    // Walk-into kinds (contact via overlap) and press-E kinds (contact via
+    // `nearestInteractable`, see the interact-key handling in `update()`)
+    // share this one table.
+    this.interactionHandlers = {
+      item: (obj) => this.collectItem(obj),
+      trigger: (obj) => this.levelEvents.onDanger(obj),
+      npc: (obj) => this.levelEvents.onTalk(obj),
+      goal: (obj) => this.levelEvents.onGoal(obj),
+    };
+
     for (const zone of interactZones) {
       this.physics.add.overlap(this.cat, zone, (_cat, z) => {
         const obj = (z as Phaser.GameObjects.Zone).getData("obj") as LevelObject;
-        if (obj.kind === "item") {
-          this.collectItem(obj);
-        } else if (obj.kind === "trigger") {
-          this.levelEvents.onDanger(obj);
-        }
+        this.interactionHandlers[obj.kind]?.(obj);
       });
     }
 
@@ -419,13 +440,77 @@ export class LevelScene extends Phaser.Scene {
 
   /**
    * Renders `level.pointLight` (already present in level data, previously
-   * only read by the legacy Canvas2D engine) as a soft additive glow, plus a
-   * smaller warm light that follows the cat — the same two-light idea the
-   * old engine used (a fixed scene light + a moving one around the player),
-   * done here with a generated radial-gradient texture instead of a
-   * per-frame gradient fill.
+   * only read by the legacy Canvas2D engine) plus a warm light that follows
+   * the cat at night/dim — the same two-light idea the old engine used (a
+   * fixed scene light + a moving one around the player).
+   *
+   * On WebGL this uses Phaser's real Lights2D pipeline (`this.lights`,
+   * flat-shaded — no normal maps, since none of the art has them) so light
+   * actually darkens unlit areas via the ambient color instead of only
+   * brightening lit ones. The Canvas renderer has no Light2D pipeline at
+   * all, so it keeps the original additive-glow-sprite approximation as a
+   * safe fallback — same visual intent, cheaper and renderer-agnostic.
    */
   private setupWorldLighting() {
+    const isWebGL = this.game.renderer.type === Phaser.WEBGL;
+    if (isWebGL) {
+      this.setupWorldLighting2D();
+    } else {
+      this.setupWorldLightingGlow();
+    }
+  }
+
+  /** WebGL path: real Phaser Lights2D — see `setupWorldLighting` doc comment. */
+  private setupWorldLighting2D() {
+    this.lights.enable();
+    this.useLights2D = true;
+
+    // Ambient color sets the "unlit" floor brightness/tint — darker + cooler
+    // at night, neutral-warm by day, so lights read as actually illuminating
+    // rather than just adding a glow on top of an already-bright scene.
+    const ambientHex =
+      this.level.ambient === "night"
+        ? 0x33394a
+        : this.level.ambient === "dim"
+          ? 0x726a58
+          : 0x9c9488;
+    this.lights.setAmbientColor(ambientHex);
+
+    // Only sprites/images with the Light2D pipeline respond to lights —
+    // background, cat, and every world-object glyph need it or they'd
+    // render at full brightness regardless of ambient darkness.
+    // `setPipeline` lives on the Pipeline GameObject mixin at runtime for
+    // every renderable (Image/Sprite/Text alike), but this Phaser version's
+    // type defs don't surface it on all three — cast through a minimal
+    // typed interface instead of `any` to keep the call itself checked.
+    const withPipeline = (obj: unknown) => obj as { setPipeline(key: string): unknown };
+    withPipeline(this.bgImage).setPipeline("Light2D");
+    withPipeline(this.cat).setPipeline("Light2D");
+    for (const spr of this.objSprites.values()) withPipeline(spr).setPipeline("Light2D");
+
+    if (this.level.pointLight) {
+      const pl = this.level.pointLight;
+      const color = Phaser.Display.Color.ValueToColor(cssColorToHex(pl.color)).color;
+      this.fixedLight = this.lights.addLight(pl.x, pl.y, 420, color, pl.intensity * 2.2);
+      // Gentle flicker, same idea as the old fixed-glow tween.
+      this.tweens.add({
+        targets: this.fixedLight,
+        intensity: { from: pl.intensity * 1.7, to: pl.intensity * 2.2 },
+        radius: { from: 400, to: 440 },
+        duration: 1800,
+        yoyo: true,
+        repeat: -1,
+        ease: "Sine.easeInOut",
+      });
+    }
+
+    if (this.level.ambient === "night" || this.level.ambient === "dim") {
+      this.catPointLight = this.lights.addLight(this.cat.x, this.cat.y, 220, 0xffdca8, 1.1);
+    }
+  }
+
+  /** Canvas-renderer fallback: additive-glow sprites, no real Lights2D pipeline available. */
+  private setupWorldLightingGlow() {
     const glowGfx = this.add.graphics();
     const r = 128;
     for (let i = r; i > 0; i -= 2) {
@@ -932,6 +1017,7 @@ export class LevelScene extends Phaser.Scene {
     this.cat.setDepth(this.cat.y);
     this.catShadow.setDepth(this.cat.y - 1);
     this.catLight?.setPosition(this.cat.x, this.cat.y);
+    this.catPointLight?.setPosition(this.cat.x, this.cat.y);
 
     // Hop-ready cue: fade the paw-glow in while the cooldown is clear (and
     // not mid-hop), fade it out the instant a hop is buffered/fired, so its
@@ -948,8 +1034,7 @@ export class LevelScene extends Phaser.Scene {
       this.interactPressed = false;
       if (this.nearestInteractable) {
         const obj = this.nearestInteractable;
-        if (obj.kind === "npc") this.levelEvents.onTalk(obj);
-        else if (obj.kind === "goal") this.levelEvents.onGoal(obj);
+        this.interactionHandlers[obj.kind]?.(obj);
       }
     }
   }
