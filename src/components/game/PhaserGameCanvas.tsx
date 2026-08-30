@@ -226,6 +226,11 @@ export function PhaserGameCanvas({ level }: Props) {
         width: wrap.clientWidth,
         height: wrap.clientHeight,
         backgroundColor: "#000000",
+        // Ask the browser to pick the discrete GPU when one is available —
+        // the WebGL Lights2D pipeline (setupWorldLighting2D) is the most
+        // GPU-sensitive part of the renderer, and this is a no-cost hint
+        // (browsers on integrated-only hardware simply ignore it).
+        powerPreference: "high-performance",
         physics: { default: "arcade", arcade: { debug: false } },
         scale: { mode: PhaserLib.Scale.RESIZE },
         scene: [],
