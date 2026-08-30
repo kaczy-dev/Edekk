@@ -557,6 +557,22 @@ export class LevelScene extends Phaser.Scene {
     return this.cameras.main.zoom;
   }
 
+  /**
+   * Snapshot for the dev-only DebugOverlay (see DebugOverlay.tsx) — polled
+   * from React on an interval, never read from the per-frame hot path.
+   * `this.game.loop.actualFps` is Phaser's own smoothed FPS counter.
+   */
+  get debugStats() {
+    return {
+      fps: this.game.loop.actualFps,
+      pos: this.pos,
+      renderQuality: this.renderQuality,
+      hopping: this.hopping,
+      sprinting: this.wasSprinting,
+      patrolCount: this.patrolState.size,
+    };
+  }
+
   update(time: number, deltaMs: number) {
     if (this.paused || !this.cat) return;
     const dt = Math.min(deltaMs / 1000, 0.05);

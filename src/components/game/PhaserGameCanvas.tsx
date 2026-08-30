@@ -15,6 +15,7 @@ import { ControlsModal } from "./ControlsModal";
 import { VirtualJoystick } from "./VirtualJoystick";
 import { DPad } from "./DPad";
 import { GoalArrows } from "./GoalArrows";
+import { DebugOverlay } from "./DebugOverlay";
 import { audio } from "@/lib/audio";
 import edekSprite from "@/assets/edek-sprite.png";
 import { AnimatePresence, motion } from "framer-motion";
@@ -137,7 +138,10 @@ export function PhaserGameCanvas({ level }: Props) {
         pickUp(itemId, obj.id, level.id);
         audio.playPickup(useGameStore.getState().muted ? 0 : useGameStore.getState().volume);
         const id = ++toastIdRef.current;
-        setToasts((prev) => [...prev, { id, text: `${ITEMS[itemId].emoji}  ${ITEMS[itemId].name}` }]);
+        setToasts((prev) => [
+          ...prev,
+          { id, text: `${ITEMS[itemId].emoji}  ${ITEMS[itemId].name}` },
+        ]);
         setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 1500);
       },
       onTalk: (obj: LevelObject) => {
@@ -268,6 +272,7 @@ export function PhaserGameCanvas({ level }: Props) {
   }, [level.id]);
 
   const getCatPos = useCallback(() => sceneRef.current?.pos ?? null, []);
+  const getScene = useCallback(() => sceneRef.current, []);
   const getCamera = useCallback(
     () =>
       sceneRef.current
@@ -311,7 +316,12 @@ export function PhaserGameCanvas({ level }: Props) {
 
       <DialogBox text={dialog} onClose={() => setDialog(null)} />
       <Toast items={toasts} />
-      <PauseMenu open={paused} onResume={() => setPaused(false)} onRestart={restart} level={level} />
+      <PauseMenu
+        open={paused}
+        onResume={() => setPaused(false)}
+        onRestart={restart}
+        level={level}
+      />
       <ControlsModal
         open={showHintModal}
         onClose={() => setShowHintModal(false)}
@@ -379,6 +389,7 @@ export function PhaserGameCanvas({ level }: Props) {
       >
         E
       </button>
+      {import.meta.env.DEV && <DebugOverlay getScene={getScene} />}
     </div>
   );
 }
