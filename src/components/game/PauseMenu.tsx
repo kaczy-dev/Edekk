@@ -27,13 +27,13 @@ export function PauseMenu({ open, onResume, onRestart }: Props) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          className="absolute inset-0 z-50 flex items-center justify-center scrim"
         >
           <motion.div
             initial={{ scale: 0.9, y: 20 }}
             animate={{ scale: 1, y: 0 }}
             exit={{ scale: 0.95, y: 10 }}
-            className="w-80 rounded-3xl border border-border bg-card p-6 text-center shadow-2xl"
+            className="w-80 panel-glass p-6 text-center shadow-2xl"
           >
             <h3 className="font-display text-3xl font-semibold text-honey">Pauza</h3>
             <p className="mt-1 text-sm text-muted-foreground">Edek czeka spokojnie.</p>
