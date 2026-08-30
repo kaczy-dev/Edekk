@@ -73,6 +73,8 @@ export interface LevelSceneInit {
   initialEnergy: number;
   difficulty: Difficulty;
   renderQuality: RenderQuality;
+  /** Player's accessibility setting: skip decorative pulses/flicker/camera-shake on the canvas. */
+  reducedMotion: boolean;
   /**
    * Phaser's `SceneManager.add(..., autoStart: true)` does not return the
    * booted scene instance synchronously (boot is deferred to the next
@@ -108,6 +110,7 @@ export class LevelScene extends Phaser.Scene {
   energy = 100;
   difficulty: Difficulty = "medium";
   private renderQuality: RenderQuality = "high";
+  reducedMotion = false;
   touch: TouchVec = { x: 0, y: 0 };
   sprintToggled = false;
   touchSprint = false;
@@ -212,6 +215,7 @@ export class LevelScene extends Phaser.Scene {
     this.energy = data.initialEnergy;
     this.difficulty = data.difficulty;
     this.renderQuality = data.renderQuality;
+    this.reducedMotion = data.reducedMotion;
     this.onReady = data.onReady;
   }
 
@@ -385,7 +389,7 @@ export class LevelScene extends Phaser.Scene {
     // is background + cat + gameplay only — no atmosphere layers at all.
     const q = this.renderQuality;
     if (q !== "low") {
-      this.atmosphere = new AtmosphereFX(this, this.level, this.layerDepths);
+      this.atmosphere = new AtmosphereFX(this, this.level, this.layerDepths, this.reducedMotion);
       this.atmosphere.setupPostFX();
       if (q === "high" || q === "ultra") {
         this.atmosphere.setupWorldLighting(this.cat.x, this.cat.y);
@@ -695,7 +699,7 @@ export class LevelScene extends Phaser.Scene {
         !this.wasBlocked &&
         Math.abs(body.velocity.x) + Math.abs(body.velocity.y) > 40
       ) {
-        this.cameras.main.shake(70, 0.0015);
+        if (!this.reducedMotion) this.cameras.main.shake(70, 0.0015);
         this.squash(1.2, 0.75, 90);
       }
       this.wasBlocked = isBlocked;
@@ -717,7 +721,10 @@ export class LevelScene extends Phaser.Scene {
         } else {
           // Idle-breathing: a very small continuous scale pulse so a
           // standing cat still reads as alive instead of a frozen sticker.
-          const breath = Math.sin(time * 0.001 * BREATH_SPEED) * BREATH_AMOUNT;
+          // Skipped under reducedMotion — it's decorative, not a state cue.
+          const breath = this.reducedMotion
+            ? 0
+            : Math.sin(time * 0.001 * BREATH_SPEED) * BREATH_AMOUNT;
           this.cat.setScale(this.baseScaleX * (1 + breath), this.baseScaleY * (1 - breath));
         }
       }
@@ -799,7 +806,11 @@ export class LevelScene extends Phaser.Scene {
     this.hopReadyGlow.setPosition(this.cat.x, this.cat.y + this.cat.displayHeight * 0.3);
     this.hopReadyGlow.setDepth(this.cat.y - 1);
     const hopReady = !this.hopping && time >= this.hopCooldownUntil;
-    const targetGlowAlpha = hopReady ? 0.22 + Math.sin(time * 0.004) * 0.08 : 0;
+    const targetGlowAlpha = hopReady
+      ? this.reducedMotion
+        ? 0.22
+        : 0.22 + Math.sin(time * 0.004) * 0.08
+      : 0;
     this.hopReadyGlow.setAlpha(Phaser.Math.Linear(this.hopReadyGlow.alpha, targetGlowAlpha, 0.15));
 
     this.updatePatrols(dt);
@@ -838,7 +849,7 @@ export class LevelScene extends Phaser.Scene {
   private endHop() {
     this.hopping = false;
     this.squash(0.8, 1.25, 110);
-    this.cameras.main.shake(60, 0.001);
+    if (!this.reducedMotion) this.cameras.main.shake(60, 0.001);
     this.spawnDust(this.cat.x, this.cat.y + this.cat.displayHeight * 0.32, 8);
   }
 

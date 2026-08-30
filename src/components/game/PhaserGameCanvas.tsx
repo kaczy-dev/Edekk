@@ -99,6 +99,10 @@ export function PhaserGameCanvas({ level }: Props) {
   }, [controls.sprintMode]);
 
   useEffect(() => {
+    if (sceneRef.current) sceneRef.current.reducedMotion = controls.reducedMotion;
+  }, [controls.reducedMotion]);
+
+  useEffect(() => {
     const unsub = useGameStore.subscribe((s) => {
       if (sceneRef.current) sceneRef.current.energy = s.energy;
     });
@@ -216,6 +220,7 @@ export function PhaserGameCanvas({ level }: Props) {
         initialEnergy: useGameStore.getState().energy,
         difficulty: effectiveDifficulty,
         renderQuality: useGameStore.getState().controls.renderQuality,
+        reducedMotion: useGameStore.getState().controls.reducedMotion,
         onReady: (scene) => {
           if (cancelled) return;
           sceneRef.current = scene;

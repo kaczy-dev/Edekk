@@ -15,6 +15,7 @@ export class AtmosphereFX {
     private scene: Phaser.Scene,
     private level: LevelDef,
     private layerDepths: Record<LevelLayerKind, number>,
+    private reducedMotion: boolean,
   ) {}
 
   /**
@@ -54,16 +55,19 @@ export class AtmosphereFX {
       fixedGlow.setAlpha(pl.intensity);
       fixedGlow.setScale(2.4);
       fixedGlow.setDepth(this.layerDepths.light);
-      // Gentle flicker so the fixed light doesn't read as a static decal.
-      this.scene.tweens.add({
-        targets: fixedGlow,
-        alpha: { from: pl.intensity * 0.75, to: pl.intensity },
-        scale: { from: 2.3, to: 2.5 },
-        duration: 1800,
-        yoyo: true,
-        repeat: -1,
-        ease: "Sine.easeInOut",
-      });
+      // Gentle flicker so the fixed light doesn't read as a static decal —
+      // skipped under reducedMotion, where it stays at its steady-state glow.
+      if (!this.reducedMotion) {
+        this.scene.tweens.add({
+          targets: fixedGlow,
+          alpha: { from: pl.intensity * 0.75, to: pl.intensity },
+          scale: { from: 2.3, to: 2.5 },
+          duration: 1800,
+          yoyo: true,
+          repeat: -1,
+          ease: "Sine.easeInOut",
+        });
+      }
     }
 
     if (this.level.ambient === "night" || this.level.ambient === "dim") {
