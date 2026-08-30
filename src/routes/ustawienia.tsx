@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import { TIER_ORDER, tierStyle } from "@/game/tierStyle";
 import { GOAL_PROXIMITY, PROXIMITY_SCALE_RANGE, type GoalArchetype } from "@/game/proximity";
 import { useGameStore, DIFFICULTIES } from "@/store/gameStore";
@@ -29,9 +30,10 @@ export const Route = createFileRoute("/ustawienia")({
 });
 
 function SettingsPage() {
-  const { volume, setVolume, muted, setMuted, controls, setControls, resetControls, resetProgress, difficulty, setDifficulty } =
+  const { volume, setVolume, muted, setMuted, controls, setControls, resetControls, resetProgress, difficulty, setDifficulty, save } =
     useGameStore();
   const navigate = useNavigate();
+  const [pendingDifficulty, setPendingDifficulty] = useState<Difficulty | null>(null);
 
   return (
     <main className="min-h-[100dvh] px-6 py-16">
@@ -56,7 +58,14 @@ function SettingsPage() {
               return (
                 <button
                   key={d}
-                  onClick={() => setDifficulty(d)}
+                  onClick={() => {
+                    if (active) return;
+                    if (save) {
+                      setPendingDifficulty(d);
+                    } else {
+                      setDifficulty(d);
+                    }
+                  }}
                   className={[
                     "rounded-2xl border px-3 py-3 text-sm font-semibold transition text-left active:scale-[0.97]",
                     active
@@ -73,6 +82,29 @@ function SettingsPage() {
             })}
           </div>
         </section>
+
+        <AlertDialog open={pendingDifficulty !== null} onOpenChange={(o) => !o && setPendingDifficulty(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Zmienić trudność?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Masz aktywny zapis w trakcie poziomu. Zmiana trudności skasuje ten zapis i będziesz
+                musiał zacząć poziom od nowa.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setPendingDifficulty(null)}>Anuluj</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  if (pendingDifficulty) setDifficulty(pendingDifficulty);
+                  setPendingDifficulty(null);
+                }}
+              >
+                Tak, zmień trudność
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Render quality (Phaser levels) */}
         <section className="mt-10 space-y-4 rounded-3xl border border-border bg-card p-6">

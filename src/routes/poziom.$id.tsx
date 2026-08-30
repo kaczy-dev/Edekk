@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { PhaserGameCanvas } from "@/components/game/PhaserGameCanvas";
 import { getLevel } from "@/game/levels";
 
@@ -23,8 +23,14 @@ function LevelPage() {
 
   if (!level)
     return (
-      <div className="min-h-dvh flex items-center justify-center text-foreground">
-        Poziom nie istnieje
+      <div className="min-h-dvh flex flex-col items-center justify-center gap-4 text-foreground px-4">
+        <p className="text-lg font-semibold">Poziom nie istnieje</p>
+        <Link
+          to="/menu"
+          className="rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground transition hover:opacity-90 active:scale-95"
+        >
+          Wróć do wyboru poziomów
+        </Link>
       </div>
     );
 

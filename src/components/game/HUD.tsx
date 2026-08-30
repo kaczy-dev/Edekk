@@ -39,14 +39,20 @@ export function HUD({ level, onPause, sprinting, getCatPos, onShowControls }: Pr
 
   // Auto-collapse the legend after a configurable grace period (0 = never).
   // Manual toggling cancels the timer for this session and is persisted.
+  const [showCollapseHint, setShowCollapseHint] = useState(false);
   useEffect(() => {
     if (!goalIndicators || legendAutoCollapseSec <= 0 || !legendExpanded) return;
-    const t = setTimeout(
-      () => setControls({ legendExpanded: false }),
-      legendAutoCollapseSec * 1000,
-    );
+    const t = setTimeout(() => {
+      setControls({ legendExpanded: false });
+      setShowCollapseHint(true);
+    }, legendAutoCollapseSec * 1000);
     return () => clearTimeout(t);
   }, [goalIndicators, legendAutoCollapseSec, legendExpanded, setControls]);
+  useEffect(() => {
+    if (!showCollapseHint) return;
+    const t = setTimeout(() => setShowCollapseHint(false), 3500);
+    return () => clearTimeout(t);
+  }, [showCollapseHint]);
 
   // Speedrun timer: a 1s tick is plenty for a readable clock and avoids
   // re-rendering the whole HUD every frame for a number nobody needs to the ms.
@@ -334,42 +340,59 @@ export function HUD({ level, onPause, sprinting, getCatPos, onShowControls }: Pr
                 </div>
               </motion.div>
             ) : (
-              <motion.button
-                key="legend-toggle"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ duration: 0.2 }}
-                onClick={() => setControls({ legendExpanded: true })}
-                aria-label="Pokaż legendę dystansu"
-                className="flex items-center gap-1.5 rounded-full px-2 py-1 text-[10px] font-semibold text-white/70 transition hover:bg-white/10 hover:text-white"
-              >
-                <LegendSwatch
-                  shape={tierStyle("near", colorBlind).swatchShape}
-                  color={tierStyle("near", colorBlind).swatch}
-                />
-                Legenda dystansu
-              </motion.button>
+              <motion.div key="legend-toggle" className="flex flex-col items-start gap-1">
+                {showCollapseHint && (
+                  <motion.p
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    className="px-2 text-[9px] text-white/50"
+                  >
+                    Zwinięta automatycznie — kliknij, by rozwinąć ponownie.
+                  </motion.p>
+                )}
+                <motion.button
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ duration: 0.2 }}
+                  onClick={() => setControls({ legendExpanded: true })}
+                  aria-label="Pokaż legendę dystansu"
+                  className="flex items-center gap-1.5 rounded-full px-2 py-1 text-[10px] font-semibold text-white/70 transition hover:bg-white/10 hover:text-white"
+                >
+                  <LegendSwatch
+                    shape={tierStyle("near", colorBlind).swatchShape}
+                    color={tierStyle("near", colorBlind).swatch}
+                  />
+                  Legenda dystansu
+                </motion.button>
+              </motion.div>
             )}
           </AnimatePresence>
         </div>
       )}
 
       <div className="pointer-events-auto mb-2 flex flex-wrap gap-2 self-end rounded-2xl border border-white/10 bg-black/40 p-2 backdrop-blur-md">
-        {Object.keys(ITEMS).map((k) => {
-          const id = k as ItemId;
-          const n = inventory[id] ?? 0;
-          if (!n) return null;
-          return (
-            <div
-              key={id}
-              className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-sm text-white"
-            >
-              <span className="text-lg leading-none">{ITEMS[id].emoji}</span>
-              <span className="font-semibold">×{n}</span>
-            </div>
-          );
-        })}
+        <AnimatePresence initial={false}>
+          {Object.keys(ITEMS).map((k) => {
+            const id = k as ItemId;
+            const n = inventory[id] ?? 0;
+            if (!n) return null;
+            return (
+              <motion.div
+                key={id}
+                initial={{ opacity: 0, scale: 0.5, y: 8 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.5 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-sm text-white"
+              >
+                <span className="text-lg leading-none">{ITEMS[id].emoji}</span>
+                <span className="font-semibold">×{n}</span>
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
         {Object.keys(inventory).length === 0 && (
           <span className="px-2 py-1 text-xs text-white/50">Pusty plecak</span>
         )}
