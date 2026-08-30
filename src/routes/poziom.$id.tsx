@@ -19,5 +19,7 @@ function LevelPage() {
   const { id } = Route.useParams();
   const level = getLevel(id);
 
+  if (!level) return <div className="min-h-dvh flex items-center justify-center text-foreground">Poziom nie istnieje</div>;
+
   return <GameCanvas level={level} />;
 }

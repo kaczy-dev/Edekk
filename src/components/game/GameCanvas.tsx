@@ -31,10 +31,13 @@ export function GameCanvas({ level }: Props) {
 
   const [dialog, setDialog] = useState<string | null>(level.intro);
   const [toast, setToast] = useState<string | null>(null);
+  const [saveIndicator, setSaveIndicator] = useState(false);
   const [paused, setPaused] = useState(false);
   const [nearby, setNearby] = useState<LevelObject | null>(null);
   const [sprinting, setSprinting] = useState(false);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const saveIndicatorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastSaveIndicatorRef = useRef(0);
 
   const controls = useGameStore((s) => s.controls);
   const difficulty = useGameStore((s) => s.difficulty);
@@ -64,8 +67,19 @@ export function GameCanvas({ level }: Props) {
   const drain = useGameStore((s) => s.drainEnergy);
   const restore = useGameStore((s) => s.restoreEnergy);
   const completeLevel = useGameStore((s) => s.completeLevel);
-  const setSave = useGameStore((s) => s.setSave);
+  const _setSave = useGameStore((s) => s.setSave);
   const clearSave = useGameStore((s) => s.clearSave);
+
+  const setSave = (save: Parameters<typeof _setSave>[0]) => {
+    _setSave(save);
+    const now = Date.now();
+    if (now - lastSaveIndicatorRef.current >= 10000) {
+      lastSaveIndicatorRef.current = now;
+      setSaveIndicator(true);
+      if (saveIndicatorTimerRef.current) clearTimeout(saveIndicatorTimerRef.current);
+      saveIndicatorTimerRef.current = setTimeout(() => setSaveIndicator(false), 800);
+    }
+  };
 
   useEffect(() => {
     const saved = useGameStore.getState().save;
@@ -258,6 +272,7 @@ export function GameCanvas({ level }: Props) {
     const onHide = () => {
       const e = engineRef.current;
       if (!e) return;
+      if (document.hidden) e.paused = true;
       setSave({
         levelId: level.id,
         pos: { x: Math.round(e.pos.x), y: Math.round(e.pos.y) },
@@ -347,6 +362,19 @@ export function GameCanvas({ level }: Props) {
 
       <DialogBox text={dialog} onClose={() => setDialog(null)} />
       <Toast text={toast} />
+      <AnimatePresence>
+        {saveIndicator && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 0.6 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="pointer-events-none fixed bottom-6 left-6 z-20 text-xs font-semibold text-muted-foreground"
+          >
+            Zapisano
+          </motion.div>
+        )}
+      </AnimatePresence>
       <ControlsModal
         open={showHintModal}
         onClose={() => setShowHintModal(false)}

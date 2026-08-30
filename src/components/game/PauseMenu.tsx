@@ -1,5 +1,17 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "@tanstack/react-router";
+import { useState } from "react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface Props {
   open: boolean;
@@ -32,12 +44,21 @@ export function PauseMenu({ open, onResume, onRestart }: Props) {
               >
                 Wróć do gry
               </button>
-              <button
-                onClick={onRestart}
-                className="rounded-xl border border-border bg-secondary px-4 py-2 text-sm font-medium text-secondary-foreground transition hover:bg-muted"
-              >
-                Zacznij poziom od nowa
-              </button>
+              <AlertDialog>
+                <AlertDialogTrigger className="rounded-xl border border-border bg-secondary px-4 py-2 text-sm font-medium text-secondary-foreground transition hover:bg-muted">
+                  Zacznij poziom od nowa
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Zacząć od nowa?</AlertDialogTitle>
+                    <AlertDialogDescription>Stracisz postęp w tym poziomie.</AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Anuluj</AlertDialogCancel>
+                    <AlertDialogAction onClick={onRestart}>Tak, zacznij od nowa</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
               <Link
                 to="/menu"
                 className="rounded-xl px-4 py-2 text-sm text-muted-foreground transition hover:text-foreground"
