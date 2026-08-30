@@ -16,7 +16,7 @@ import { DPad } from "./DPad";
 import { GoalArrows } from "./GoalArrows";
 import { TutorialOverlay } from "./TutorialOverlay";
 import { audio } from "@/lib/audio";
-import edekSprite from "@/assets/edek-topdown.png";
+import edekSprite from "@/assets/edek-sprite.png";
 import { AnimatePresence, motion } from "framer-motion";
 
 interface Props {

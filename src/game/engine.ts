@@ -21,6 +21,45 @@ function dist(a: Vec2, b: Vec2) {
   return Math.hypot(a.x - b.x, a.y - b.y);
 }
 
+/** Compass direction the cat is drawn facing; indexes rows in the sprite sheet. */
+export type Direction = "down" | "left" | "right" | "up";
+
+/**
+ * Bucket a facing angle (radians, 0 = up per `facingAngle`'s convention) into
+ * one of 4 compass directions. A hysteresis band biased toward the current
+ * direction stops the sprite flickering when movement sits near a boundary
+ * (e.g. a diagonal drifting across the up/right split).
+ */
+function resolveDirection(angle: number, current: Direction): Direction {
+  let a = angle % (Math.PI * 2);
+  if (a < 0) a += Math.PI * 2;
+  const HYST = (12 * Math.PI) / 180;
+  const centers: Array<{ dir: Direction; center: number }> = [
+    { dir: "up", center: 0 },
+    { dir: "right", center: Math.PI / 2 },
+    { dir: "down", center: Math.PI },
+    { dir: "left", center: (3 * Math.PI) / 2 },
+  ];
+  let best: Direction = current;
+  let bestDiff = Infinity;
+  for (const c of centers) {
+    let diff = Math.abs(a - c.center);
+    if (diff > Math.PI) diff = Math.PI * 2 - diff;
+    const adjusted = c.dir === current ? diff - HYST : diff;
+    if (adjusted < bestDiff) { bestDiff = adjusted; best = c.dir; }
+  }
+  return best;
+}
+
+/** Maps walk-cycle phase to one of 3 sheet columns (contact–pass–contact). Idle holds the passing frame. */
+function walkFrameIndex(phase: number, moving: boolean): 0 | 1 | 2 {
+  if (!moving) return 1;
+  const t = ((phase % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+  if (t < (Math.PI * 2) / 3) return 0;
+  if (t < (Math.PI * 4) / 3) return 1;
+  return 2;
+}
+
 export type EngineEvents = {
   onPickUp: (obj: LevelObject) => void;
   onTalk: (obj: LevelObject) => void;
@@ -36,11 +75,10 @@ export type EngineEvents = {
 export class GameEngine {
   pos: Vec2;
   vel: Vec2 = { x: 0, y: 0 };
-  facing: "up" | "down" | "left" | "right" = "down";
   /** target facing angle in radians (sprite faces up = 0) */
   facingAngle = Math.PI; // start facing down
-  /** smoothed angle that visually catches up to facingAngle */
-  renderAngle = Math.PI;
+  /** compass direction bucketed from facingAngle; selects the sprite sheet row */
+  direction: Direction = "down";
   moving = false;
   sprinting = false;
   /** 0 = idle, 1 = walk, 2 = run */
@@ -48,12 +86,8 @@ export class GameEngine {
   /** blends 0..1 toward gait, drives anim amplitudes */
   walkBlend = 0;
   runBlend = 0;
-  /** -1..1 lean into current turn, drives banking of the sprite */
-  turnLean = 0;
   /** 0..1 exhaustion blend (energy under sprint threshold) */
   exhaustBlend = 0;
-  /** idle micro-animation timer (sit/look around) */
-  idleTimer = 0;
   walkPhase = 0;
   input = new InputState();
   catImg: HTMLImageElement;
@@ -78,11 +112,12 @@ export class GameEngine {
   /** Decaying screen-shake magnitude in world px. */
   private shake = 0;
   /**
-   * The cat sprite ships at 1024x1024 but draws at ~67x118. Resampling that
-   * 15x downscale every frame is the single most expensive thing the renderer
-   * did, so bake it once into a small canvas and blit that instead.
+   * The sprite sheet (3 walk-cycle columns × 4 direction rows) is resampled
+   * once per direction/frame into small canvases and blitted from there —
+   * see the single-sprite bake this replaced for why per-frame resampling
+   * is the one thing to avoid.
    */
-  private catCache: HTMLCanvasElement | null = null;
+  private catFrameAtlas: Record<Direction, HTMLCanvasElement[]> | null = null;
   /** Supersample factor: covers max zoom (2.2) x devicePixelRatio (2). */
   private static readonly CAT_CACHE_SS = 4;
   /** mirror of energy from store, set externally */
@@ -190,29 +225,8 @@ export class GameEngine {
     if (speed > 30) {
       // atan2 gives angle from +X axis; sprite "up" is -Y, so add PI/2
       this.facingAngle = Math.atan2(this.vel.y, this.vel.x) + Math.PI / 2;
-      if (Math.abs(this.vel.x) > Math.abs(this.vel.y)) {
-        this.facing = this.vel.x > 0 ? "right" : "left";
-      } else {
-        this.facing = this.vel.y > 0 ? "down" : "up";
-      }
+      this.direction = resolveDirection(this.facingAngle, this.direction);
     }
-    // smoothly rotate renderAngle toward facingAngle along shortest arc
-    let delta = this.facingAngle - this.renderAngle;
-    while (delta > Math.PI) delta -= Math.PI * 2;
-    while (delta < -Math.PI) delta += Math.PI * 2;
-    // Turn slower at high speed → arc-like natural cornering.
-    // Difficulty tweaks agility: łatwy = łagodniej, trudny = ostrzej.
-    const speedNorm = Math.min(1, speed / Math.max(1, maxSpeed));
-    const turnMul = this.difficulty === "easy" ? 0.85 : this.difficulty === "hard" ? 1.25 : 1;
-    const turnSpeed = (14 - speedNorm * 7) * turnMul; // rad/s
-    const step = Math.max(-turnSpeed * dt, Math.min(turnSpeed * dt, delta));
-    this.renderAngle += step;
-
-    // Body lean into corners: normalised angular velocity, weighted by speed.
-    const angularVel = step / Math.max(dt, 1 / 120);
-    const leanTarget = Math.max(-1, Math.min(1, (angularVel / turnSpeed) * (0.3 + 0.7 * speedNorm)));
-    const leanRate = 8;
-    this.turnLean += Math.max(-leanRate * dt, Math.min(leanRate * dt, leanTarget - this.turnLean));
 
     // --- Gait classification + smooth blends ---
     const walkThresh = WALK_SPEED * 0.4;
@@ -232,9 +246,6 @@ export class GameEngine {
     // walk cycle phase: faster as we run, near-zero at idle
     const cycleHz = 0 + this.walkBlend * 9 + this.runBlend * 7; // walk ~9Hz, run ~16Hz
     this.walkPhase += dt * Math.max(2, cycleHz);
-
-    // idle timer for micro-animations (tail flick, head turn)
-    if (targetGait === 0) this.idleTimer += dt; else this.idleTimer = 0;
 
     // Exhaustion blend — pod progiem biegu kot dyszy, mocniejszy bob.
     const exhaustTarget = this.energy < diff.minSprintEnergy ? 1 : 0;
@@ -422,7 +433,6 @@ export class GameEngine {
         ctx.save();
         ctx.translate(this.pos.x, this.pos.y + bob + breath);
         this.drawShadow(ctx, CAT_SIZE / 2.2, 1 - Math.abs(bob) * 0.015, CAT_SIZE / 2 - 6);
-        ctx.rotate(this.renderAngle);
         this.drawCat(ctx);
         // Subtle rim light in the direction opposite to the key light
         const rimLight = this.getLightSprite();
@@ -718,26 +728,44 @@ export class GameEngine {
 
 
 
-  /** Bake the oversized source sprite down to roughly its on-screen size, once. */
-  private getCatCache(drawW: number, drawH: number): HTMLCanvasElement | null {
-    if (this.catCache) return this.catCache;
+  /** Row order the sheet ships in: down/front, left, right, back/up. */
+  private static readonly DIRECTION_ROWS: Direction[] = ["down", "left", "right", "up"];
+  private static readonly SHEET_COLS = 3;
+  private static readonly SHEET_ROWS = 4;
+
+  /** Bake all 12 sheet cells (4 directions × 3 walk-cycle frames) down to on-screen size, once. */
+  private getCatFrameAtlas(drawW: number, drawH: number): Record<Direction, HTMLCanvasElement[]> | null {
+    if (this.catFrameAtlas) return this.catFrameAtlas;
     const img = this.catImg;
     if (!img.complete || img.naturalWidth === 0) return null;
     const ss = GameEngine.CAT_CACHE_SS;
-    const c = document.createElement("canvas");
-    c.width = Math.ceil(drawW * ss);
-    c.height = Math.ceil(drawH * ss);
-    const cctx = c.getContext("2d");
-    if (!cctx) return null;
-    // One high-quality resample here replaces one per frame.
-    cctx.imageSmoothingEnabled = true;
-    cctx.imageSmoothingQuality = "high";
-    cctx.drawImage(img, 0, 0, c.width, c.height);
-    this.catCache = c;
-    return c;
+    const cellW = img.naturalWidth / GameEngine.SHEET_COLS;
+    const cellH = img.naturalHeight / GameEngine.SHEET_ROWS;
+    const outW = Math.ceil(drawW * ss);
+    const outH = Math.ceil(drawH * ss);
+
+    const atlas = {} as Record<Direction, HTMLCanvasElement[]>;
+    for (let row = 0; row < GameEngine.SHEET_ROWS; row++) {
+      const dir = GameEngine.DIRECTION_ROWS[row];
+      const frames: HTMLCanvasElement[] = [];
+      for (let col = 0; col < GameEngine.SHEET_COLS; col++) {
+        const c = document.createElement("canvas");
+        c.width = outW;
+        c.height = outH;
+        const cctx = c.getContext("2d");
+        if (!cctx) return null;
+        cctx.imageSmoothingEnabled = true;
+        cctx.imageSmoothingQuality = "high";
+        cctx.drawImage(img, col * cellW, row * cellH, cellW, cellH, 0, 0, outW, outH);
+        frames.push(c);
+      }
+      atlas[dir] = frames;
+    }
+    this.catFrameAtlas = atlas;
+    return atlas;
   }
 
-  /** Draw the cat sprite. Source image faces UP, centered horizontally with tail extending downward. */
+  /** Draw the cat sprite: the correct directional walk-cycle frame, with light secondary squash/stretch. */
   private drawCat(ctx: CanvasRenderingContext2D) {
     const img = this.catImg;
     if (!img.complete || img.naturalWidth === 0) return;
@@ -747,36 +775,25 @@ export class GameEngine {
     const wb = this.walkBlend;
     const rb = this.runBlend;
 
-    // Sprite dimensions: drawn taller than wide because of the long tail.
-    const drawW = S * 1.05;
-    const drawH = S * 1.85;
+    // Sheet cells are roughly square (standing character), unlike the old
+    // tail-trailing top-down painting this replaced.
+    const drawW = S * 1.3;
+    const drawH = S * 1.5;
+    // Anchor the sprite's feet near the shadow's ground point (CAT_SIZE/2 - 6 below pos).
+    const bodyOffsetY = CAT_SIZE / 2 - 6 - drawH / 2;
 
-    // Center the cat's body (not the bounding box) on (0,0).
-    // The sprite's body center is roughly 35% from the top (head + body, tail trails behind).
-    const bodyOffsetY = drawH * 0.15; // shift down so head leads, tail trails
-
-    // Subtle gait-driven squash & stretch
-    const gaitSway = Math.sin(phase) * (wb * 0.025 + rb * 0.045);
-    // Bank into corners — turnLean is signed; sprite faces up, so positive lean tilts right.
-    const banking = this.turnLean * (0.22 + 0.15 * rb);
-    // Idle micro-motion: occasional tail flick after standing still for a while.
-    const idleFlick = wb < 0.1
-      ? Math.sin(this.idleTimer * 1.4) * Math.max(0, Math.sin(this.idleTimer * 0.35)) * 0.05
-      : 0;
-    const sway = gaitSway + banking + idleFlick;
-
-    // Running stretches the body slightly along its motion axis (Y in sprite-local space).
+    // Secondary deformation on top of the correct frame — subtle, direction-agnostic.
     const stretchY = 1 + Math.abs(Math.sin(phase)) * rb * 0.06;
     const squashX = 1 - Math.abs(Math.sin(phase)) * (wb * 0.02 + rb * 0.05);
 
-    const sprite = this.getCatCache(drawW, drawH);
-    if (!sprite) return;
+    const atlas = this.getCatFrameAtlas(drawW, drawH);
+    if (!atlas) return;
+    const frameIdx = walkFrameIndex(phase, this.moving);
+    const sprite = atlas[this.direction][frameIdx];
 
     ctx.save();
-    // Tail-flick sway + turn banking tilt the whole sprite naturally.
-    ctx.rotate(sway);
     ctx.scale(squashX, stretchY);
-    // Cheap blit: the expensive resample already happened when baking the cache.
+    // Cheap blit: the expensive resample already happened when baking the atlas.
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = "low";
     ctx.drawImage(sprite, -drawW / 2, -drawH / 2 + bodyOffsetY, drawW, drawH);
