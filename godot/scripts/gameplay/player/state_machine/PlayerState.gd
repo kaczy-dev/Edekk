@@ -17,9 +17,10 @@ func exit() -> void:
 func update(_delta: float) -> void:
 	pass
 
-## Currently a no-op in every concrete state (PlayerMovement.gd stays the
-## physics authority — see PlayerStateMachine.gd). Reserved for a future
-## pass that actually moves movement math into states, or per-state
-## animation/sound/VFX triggers, without changing this base class's shape.
+## No-op in Idle/Walk/Sprint — PlayerMovement.gd still owns their
+## accel/friction/drift (see PlayerStateMachine.gd's file header). Overridden
+## by PlayerHopState, which DOES write `player.velocity` here (branch
+## migration/player-physics). Reserved on the other three for a future pass
+## that moves their movement math into states too.
 func physics_update(_delta: float) -> void:
 	pass

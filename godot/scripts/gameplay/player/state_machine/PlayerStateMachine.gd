@@ -10,20 +10,18 @@ extends Node
 ## States here are Idle/Walk/Sprint/Hop, matching what PlayerMovement.gd
 ## already computes.
 ##
-## DELIBERATELY an observability layer, not a rewrite of movement authority:
-## PlayerMovement.gd's velocity/collision/hop math is the single, TESTED
-## (user-confirmed in the editor across multiple sessions this project) path
-## — this classifies its result into a named state every physics frame and
-## calls enter()/exit()/physics_update() on PlayerState subclasses, but
-## none of those currently touch velocity or position. Moving the actual
-## physics into per-state code was the literal spec ask; doing that to the
-## single most-tested system in the game, this late in a long session, with
-## no way to visually re-verify a rewrite (no screenshot/input-simulation
-## tool available — see plan31-08.md's automated-smoke-test section), was
-## judged too risky. This still delivers real state objects with real
-## enter()/exit() transitions (verified by the automated smoke test) that a
-## future pass can extend with per-state animation/sound/VFX without
-## re-deriving "what state is the cat in" a second time somewhere else.
+## UPDATE (branch migration/player-physics, plan31-08.md "principal lead"
+## follow-up #4): PlayerHopState.physics_update() now DOES own the Hop
+## velocity write — see PlayerHopState.gd — scoped to just the Hop state
+## (the most isolated one, per the user's own recommendation for this
+## follow-up). Walk/Sprint/Idle's accel/friction/drift/lean stay in
+## PlayerMovement.gd for now; this remains an observability layer for those
+## three, real physics authority for Hop. GUT's 37 assertions (incl. the
+## HOP-classification test in test_gameplay.gd) passed unchanged before and
+## after this change; a full manual retest of hop feel in the editor is
+## still required before merge (see plan31-08.md's original caution about
+## this exact refactor — no input-simulation/screenshot tool exists to
+## visually re-verify a rewrite, only assertions on state/velocity values).
 
 enum StateName { IDLE, WALK, SPRINT, HOP }
 
@@ -54,19 +52,31 @@ func setup(player: CharacterBody2D, hop: PlayerHop) -> void:
 		add_child(state)
 	_states[current].enter()
 
-## Called from PlayerMovement._physics_process() after it has already
-## computed this frame's velocity/is_sprinting/hop state — classification
-## reads that result, it never runs before it.
-func physics_update(delta: float) -> void:
-	var next := _classify()
+## Called from PlayerMovement._physics_process(). `hop_velocity` is this
+## frame's return value from PlayerHop.update() (null when no hop is
+## active/starting this frame, a Vector2 velocity override otherwise) —
+## passed in rather than re-read via `_hop.is_active()` so classification
+## and PlayerHopState's velocity write both agree on the exact same value,
+## with no risk of PlayerHop's internal timer ticking a second time or
+## disagreeing between two separate reads in the same frame.
+##
+## For Walk/Sprint/Idle, PlayerMovement has already written `_player.
+## velocity` for this frame (ground accel/friction/drift) BEFORE calling
+## this — classification reads that result, same as before this change. For
+## HOP, PlayerMovement has NOT written velocity yet — that happens below,
+## inside `_states[StateName.HOP].physics_update()`, after transitioning.
+func physics_update(delta: float, hop_velocity: Variant = null) -> void:
+	var next := _classify(hop_velocity)
 	if next != current:
 		_states[current].exit()
 		current = next
 		_states[current].enter()
+	if current == StateName.HOP:
+		(_states[current] as PlayerHopState).hop_velocity = hop_velocity
 	_states[current].physics_update(delta)
 
-func _classify() -> StateName:
-	if _hop.is_active():
+func _classify(hop_velocity: Variant) -> StateName:
+	if hop_velocity != null:
 		return StateName.HOP
 	if _player.velocity.length() < MOVE_THRESHOLD:
 		return StateName.IDLE

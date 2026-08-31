@@ -112,9 +112,7 @@ func _physics_process(delta: float) -> void:
 	is_moving = input_dir != Vector2.ZERO
 	is_sprinting = can_sprint and Input.is_action_pressed("sprint") and is_moving
 
-	if hop_velocity != null:
-		velocity = hop_velocity
-	else:
+	if hop_velocity == null:
 		var sprinting := is_sprinting
 		var target_speed := (RUN_SPEED if sprinting else WALK_SPEED) * _status.speed_multiplier
 		var target_velocity := input_dir * target_speed
@@ -140,6 +138,21 @@ func _physics_process(delta: float) -> void:
 			# a stop, it doesn't brake like a robot" (comment from the Phaser source).
 			velocity = velocity.move_toward(Vector2.ZERO, FRICTION * delta)
 
+	# Classifies this frame (ground velocity above, or hop_velocity here) and
+	# dispatches to the active PlayerState. For HOP specifically,
+	# PlayerHopState.physics_update() now OWNS the velocity write (see
+	# PlayerHopState.gd) — this is the "FSM drives physics" step from
+	# plan31-08.md's "principal lead" follow-up #4, deliberately scoped to
+	# just the Hop state (the most isolated one, per the user's own
+	# recommendation) rather than also moving Walk/Sprint/Idle's
+	# accel/friction/drift, which stays here for now. Must run after the
+	# ground-velocity branch above (classification needs this frame's
+	# velocity for the Walk/Sprint/Idle threshold) but before move_and_slide()
+	# (HOP needs its velocity applied before sliding, not after — this is an
+	# intentional reordering from before this change, when HOP's velocity was
+	# written inline above and move_and_slide() ran regardless of state).
+	_state_machine.physics_update(delta, hop_velocity)
+
 	move_and_slide()
 	_update_animation(delta)
 
@@ -147,11 +160,6 @@ func _physics_process(delta: float) -> void:
 	if is_colliding and not _was_colliding and pre_slide_speed > COLLISION_SHAKE_MIN_SPEED:
 		_camera.shake(COLLISION_SHAKE_DURATION, COLLISION_SHAKE_AMPLITUDE_PX)
 	_was_colliding = is_colliding
-
-	# Classifies this frame's already-computed velocity/is_sprinting/hop
-	# state — must run after everything above, never before. See
-	# PlayerStateMachine.gd.
-	_state_machine.physics_update(delta)
 
 ## Squash-then-stretch, driven by AnimatedSprite2D.scale only — never
 ## CharacterBody2D.scale, which would also scale CollisionShape2D and break
