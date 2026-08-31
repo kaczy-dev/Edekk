@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://scripts/gameplay/player/PlayerMovement.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/gameplay/player/PlayerHop.gd" id="2"]
@@ -7,6 +7,7 @@
 [ext_resource type="Script" path="res://scripts/gameplay/player/InteractionDetector.gd" id="5"]
 [ext_resource type="Script" path="res://scripts/gameplay/player/StatusEffectComponent.gd" id="6"]
 [ext_resource type="Script" path="res://scripts/gameplay/player/state_machine/PlayerStateMachine.gd" id="7"]
+[ext_resource type="Script" path="res://scripts/gameplay/player/PlayerVisuals.gd" id="8"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_body"]
 size = Vector2(28, 40)
@@ -41,6 +42,9 @@ script = ExtResource("6")
 
 [node name="StateMachine" type="Node" parent="."]
 script = ExtResource("7")
+
+[node name="Visuals" type="Node" parent="."]
+script = ExtResource("8")
 
 [node name="Camera2D" type="Camera2D" parent="."]
 position_smoothing_enabled = true
