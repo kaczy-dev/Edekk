@@ -558,7 +558,7 @@ Kolejność jest zależnościowa: każdy punkt zakłada, że wcześniejsze z jeg
 
 | # | Zadanie | Rozm. | Skills |
 |---|---|---|---|
-| 1 | **Dług HOP do state machine** — fizyka z `PlayerMovement.gd`/`PlayerHop.gd` do `PlayerHopState.physics_update()`, branch `migration/player-physics`, pełny ręczny retest feelu | M | `state-machine`, `player-controller` |
+| 1 | **Dług HOP do state machine** — ✅ **kod gotowy (2026-08-31), commit `0c78ddd` na `migration/player-physics`**, GUT 37/37 PASS przed i po. ⚠️ **Brakuje ręcznego retestu feelu w edytorze — nie mergować przed tym.** `PlayerHop.gd` nietknięty (nadal jedyne źródło bufora/coyote/cooldown), tylko wykorzystanie jego wyniku przeniesione do `PlayerHopState.physics_update()`. Walk/Sprint/Idle świadomie NIE ruszone w tym kroku | M | `state-machine`, `player-controller` |
 | 2 | **Rozbić `PlayerMovement.gd` (262 l.) na komponenty** — `PlayerLocomotion` / `PlayerVisuals` / `PlayerEnergyGate`. Zasada 2 | M | `component-system` |
 | 3 | **Testowy profil zapisu** — GUT przestaje pisać do prawdziwego `progress.json` | S | `godot-testing`, `save-load` |
 | 4 | **`Theme` + font z pełnymi polskimi diakrytykami**, usunięcie `add_theme_*_override` z kodu gameplayowego | M | `godot-ui` |
