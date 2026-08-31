@@ -1,0 +1,122 @@
+[gd_resource type="SpriteFrames" load_steps=13 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/textures/characters/edek-sprite.png" id="1"]
+
+[sub_resource type="AtlasTexture" id="AT_down_0"]
+atlas = ExtResource("1")
+region = Rect2(0, 0, 298.6667, 300)
+
+[sub_resource type="AtlasTexture" id="AT_down_1"]
+atlas = ExtResource("1")
+region = Rect2(298.6667, 0, 298.6667, 300)
+
+[sub_resource type="AtlasTexture" id="AT_down_2"]
+atlas = ExtResource("1")
+region = Rect2(597.3334, 0, 298.6667, 300)
+
+[sub_resource type="AtlasTexture" id="AT_left_0"]
+atlas = ExtResource("1")
+region = Rect2(0, 300, 298.6667, 300)
+
+[sub_resource type="AtlasTexture" id="AT_left_1"]
+atlas = ExtResource("1")
+region = Rect2(298.6667, 300, 298.6667, 300)
+
+[sub_resource type="AtlasTexture" id="AT_left_2"]
+atlas = ExtResource("1")
+region = Rect2(597.3334, 300, 298.6667, 300)
+
+[sub_resource type="AtlasTexture" id="AT_right_0"]
+atlas = ExtResource("1")
+region = Rect2(0, 600, 298.6667, 300)
+
+[sub_resource type="AtlasTexture" id="AT_right_1"]
+atlas = ExtResource("1")
+region = Rect2(298.6667, 600, 298.6667, 300)
+
+[sub_resource type="AtlasTexture" id="AT_right_2"]
+atlas = ExtResource("1")
+region = Rect2(597.3334, 600, 298.6667, 300)
+
+[sub_resource type="AtlasTexture" id="AT_up_0"]
+atlas = ExtResource("1")
+region = Rect2(0, 900, 298.6667, 300)
+
+[sub_resource type="AtlasTexture" id="AT_up_1"]
+atlas = ExtResource("1")
+region = Rect2(298.6667, 900, 298.6667, 300)
+
+[sub_resource type="AtlasTexture" id="AT_up_2"]
+atlas = ExtResource("1")
+region = Rect2(597.3334, 900, 298.6667, 300)
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AT_down_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("AT_down_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("AT_down_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AT_down_1")
+}],
+"loop": true,
+"name": &"walk-down",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AT_left_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("AT_left_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("AT_left_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AT_left_1")
+}],
+"loop": true,
+"name": &"walk-left",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AT_right_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("AT_right_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("AT_right_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AT_right_1")
+}],
+"loop": true,
+"name": &"walk-right",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AT_up_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("AT_up_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("AT_up_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AT_up_1")
+}],
+"loop": true,
+"name": &"walk-up",
+"speed": 8.0
+}]

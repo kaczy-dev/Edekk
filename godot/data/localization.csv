@@ -1,0 +1,20 @@
+keys,pl,en
+Ustawienia,Ustawienia,Settings
+Trudność,Trudność,Difficulty
+Głośność,Głośność,Volume
+Wycisz,Wycisz,Mute
+Wróć,Wróć,Back
+Graj,Graj,Play
+Zablokowane,Zablokowane,Locked
+Pusty plecak,Pusty plecak,Empty bag
+UI_ENERGY_LABEL,Energia: {pct}%,Energy: {pct}%
+UI_ENERGY_EXHAUSTED,  (Wyczerpanie),  (Exhausted)
+UI_ENERGY_TIRED,  (Zmęczenie),  (Tired)
+UI_INTERACT_TALK,"Naciśnij E, aby porozmawiać","Press E to talk"
+UI_INTERACT_COLLECT,"Naciśnij E, aby zebrać","Press E to collect"
+UI_INTERACT_GENERIC,Naciśnij E,Press E
+UI_PROXIMITY_HINT,· {tier} (~{steps} kr.),· {tier} (~{steps} steps)
+UI_TIER_AT,tuż obok,right here
+UI_TIER_NEAR,blisko,close
+UI_TIER_MID,średnio,mid-range
+UI_TIER_FAR,daleko,far

@@ -1,0 +1,125 @@
+[gd_resource type="Resource" script_class="LevelData" load_steps=14 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/LevelData.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/core/LevelObjectData.gd" id="2"]
+[ext_resource type="Script" path="res://scripts/core/QuestStepData.gd" id="3"]
+
+[sub_resource type="Resource" id="Obj_building_main"]
+script = ExtResource("2")
+id = "building-main"
+kind = "obstacle"
+rect = Rect2(220, 100, 1000, 430)
+
+[sub_resource type="Resource" id="Obj_building_annex"]
+script = ExtResource("2")
+id = "building-annex"
+kind = "obstacle"
+rect = Rect2(1180, 200, 400, 670)
+
+[sub_resource type="Resource" id="Obj_trees_topleft"]
+script = ExtResource("2")
+id = "trees-topleft"
+kind = "obstacle"
+rect = Rect2(0, 0, 180, 360)
+
+[sub_resource type="Resource" id="Obj_trees_left"]
+script = ExtResource("2")
+id = "trees-left"
+kind = "obstacle"
+rect = Rect2(0, 400, 230, 500)
+
+[sub_resource type="Resource" id="Obj_i_bowl1"]
+script = ExtResource("2")
+id = "i-bowl1"
+kind = "item"
+rect = Rect2(300, 950, 50, 50)
+item_id = &"bowl"
+
+[sub_resource type="Resource" id="Obj_i_bowl2"]
+script = ExtResource("2")
+id = "i-bowl2"
+kind = "item"
+rect = Rect2(900, 1000, 50, 50)
+item_id = &"bowl"
+
+[sub_resource type="Resource" id="Obj_i_bowl3"]
+script = ExtResource("2")
+id = "i-bowl3"
+kind = "item"
+rect = Rect2(1350, 1000, 50, 50)
+item_id = &"bowl"
+
+[sub_resource type="Resource" id="Obj_kot"]
+script = ExtResource("2")
+id = "kot"
+kind = "npc"
+rect = Rect2(250, 550, 70, 70)
+npc_id = "kot"
+icon = "🐈"
+message = "Mruczenie! Sąsiedzki kocur podaje Edkowi zapasowy klucz do klatki."
+
+[sub_resource type="Resource" id="Obj_i_photo"]
+script = ExtResource("2")
+id = "i-photo"
+kind = "item"
+rect = Rect2(700, 1100, 50, 50)
+item_id = &"photo"
+icon = "📷"
+
+[sub_resource type="Resource" id="Obj_entrance"]
+script = ExtResource("2")
+id = "entrance"
+kind = "goal"
+rect = Rect2(560, 480, 120, 80)
+icon = "🚪"
+requires = {
+&"bowl": 3,
+&"key": 1
+}
+message = "Klatka schodowa przy Łuczniczej 43! Edek wraca do domu."
+
+[sub_resource type="Resource" id="Quest_bowls"]
+script = ExtResource("3")
+id = "q6-bowls"
+kind = "collect"
+label = "Znajdź 3 miski z karmą na podwórku"
+item_id = &"bowl"
+count = 3
+
+[sub_resource type="Resource" id="Quest_cat"]
+script = ExtResource("3")
+id = "q6-cat"
+kind = "talk"
+label = "Pogadaj z sąsiadem kotem"
+obj_id = "kot"
+
+[sub_resource type="Resource" id="Quest_entrance"]
+script = ExtResource("3")
+id = "q6-entrance"
+kind = "reach"
+label = "Wróć do klatki schodowej"
+obj_id = "entrance"
+
+[resource]
+script = ExtResource("1")
+id = "6"
+slug = "lucznicza-43"
+title = "Łucznicza 43"
+subtitle = "Nowe podwórko w Szczecinie"
+background = "luczn"
+width = 1600.0
+height = 1200.0
+spawn = Vector2(120, 1050)
+ambient = "day"
+ambient_fx = "dust"
+intro = "Edek trafia na podwórko przy Łuczniczej 43 — zupełnie nowe sąsiedztwo do obwąchania."
+objective = "Znajdź 3 miski z karmą, pogadaj z sąsiadem kotem, wróć do klatki schodowej."
+unlock_hint = "Odblokowane po powrocie z podwórka na Blokowisku (Poziom 5)."
+quests = Array[ExtResource("3")]([SubResource("Quest_bowls"), SubResource("Quest_cat"), SubResource("Quest_entrance")])
+objects = Array[ExtResource("2")]([SubResource("Obj_building_main"), SubResource("Obj_building_annex"), SubResource("Obj_trees_topleft"), SubResource("Obj_trees_left"), SubResource("Obj_i_bowl1"), SubResource("Obj_i_bowl2"), SubResource("Obj_i_bowl3"), SubResource("Obj_kot"), SubResource("Obj_i_photo"), SubResource("Obj_entrance")])
+mood = {
+"brightness": 1.05,
+"contrast": 1.02,
+"saturate": 0.08,
+"hue": 10
+}

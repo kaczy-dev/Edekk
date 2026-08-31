@@ -1,0 +1,139 @@
+[gd_resource type="Resource" script_class="LevelData" load_steps=15 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/LevelData.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/core/LevelObjectData.gd" id="2"]
+[ext_resource type="Script" path="res://scripts/core/QuestStepData.gd" id="3"]
+
+[sub_resource type="Resource" id="Obj_trees_topleft"]
+script = ExtResource("2")
+id = "trees-topleft"
+kind = "obstacle"
+rect = Rect2(0, 0, 417, 375)
+
+[sub_resource type="Resource" id="Obj_trees_topright"]
+script = ExtResource("2")
+id = "trees-topright"
+kind = "obstacle"
+rect = Rect2(1292, 0, 308, 417)
+
+[sub_resource type="Resource" id="Obj_bushes_left"]
+script = ExtResource("2")
+id = "bushes-left"
+kind = "obstacle"
+rect = Rect2(0, 333, 417, 333)
+
+[sub_resource type="Resource" id="Obj_bushes_bottomleft"]
+script = ExtResource("2")
+id = "bushes-bottomleft"
+kind = "obstacle"
+rect = Rect2(208, 625, 417, 275)
+
+[sub_resource type="Resource" id="Obj_pond"]
+script = ExtResource("2")
+id = "pond"
+kind = "obstacle"
+rect = Rect2(1083, 625, 517, 275)
+
+[sub_resource type="Resource" id="Obj_bushes_right"]
+script = ExtResource("2")
+id = "bushes-right"
+kind = "obstacle"
+rect = Rect2(1292, 125, 308, 333)
+
+[sub_resource type="Resource" id="Obj_i_treat1"]
+script = ExtResource("2")
+id = "i-treat1"
+kind = "item"
+rect = Rect2(700, 500, 50, 50)
+item_id = &"treat"
+
+[sub_resource type="Resource" id="Obj_i_treat2"]
+script = ExtResource("2")
+id = "i-treat2"
+kind = "item"
+rect = Rect2(950, 650, 50, 50)
+item_id = &"treat"
+
+[sub_resource type="Resource" id="Obj_i_treat3"]
+script = ExtResource("2")
+id = "i-treat3"
+kind = "item"
+rect = Rect2(750, 750, 50, 50)
+item_id = &"treat"
+
+[sub_resource type="Resource" id="Obj_pigeon"]
+script = ExtResource("2")
+id = "pigeon"
+kind = "npc"
+rect = Rect2(1000, 450, 70, 70)
+npc_id = "pigeon"
+icon = "🐦"
+message = "Gruchanie! Gołąb podaje Edkowi błyszczące piórko."
+patrol_range = 180.0
+patrol_speed = 34.0
+
+[sub_resource type="Resource" id="Obj_i_photo"]
+script = ExtResource("2")
+id = "i-photo"
+kind = "item"
+rect = Rect2(650, 350, 50, 50)
+item_id = &"photo"
+icon = "📷"
+
+[sub_resource type="Resource" id="Obj_entrance"]
+script = ExtResource("2")
+id = "entrance"
+kind = "goal"
+rect = Rect2(700, 80, 150, 90)
+icon = "🚪"
+requires = {
+&"treat": 3,
+&"feather": 1
+}
+message = "Klatka schodowa! Edek wraca do domu po wielkiej wyprawie."
+
+[sub_resource type="Resource" id="Quest_treats"]
+script = ExtResource("3")
+id = "q5-treats"
+kind = "collect"
+label = "Znajdź 3 smakołyki na podwórku"
+item_id = &"treat"
+count = 3
+
+[sub_resource type="Resource" id="Quest_pigeon"]
+script = ExtResource("3")
+id = "q5-pigeon"
+kind = "talk"
+label = "Pogadaj z gołębiem po piórko"
+obj_id = "pigeon"
+
+[sub_resource type="Resource" id="Quest_entrance"]
+script = ExtResource("3")
+id = "q5-entrance"
+kind = "reach"
+label = "Wróć do klatki schodowej"
+obj_id = "entrance"
+
+[resource]
+script = ExtResource("1")
+id = "5"
+slug = "blokowisko"
+title = "Ogród za blokiem"
+subtitle = "Zielony zakątek w Szczecinie"
+background = "garden"
+width = 1600.0
+height = 900.0
+spawn = Vector2(750, 850)
+ambient = "day"
+ambient_fx = "dust"
+intro = "Ktoś zostawił furtkę do ogrodu za blokiem uchyloną. Edek wymyka się między kwietniki."
+objective = "Znajdź 3 smakołyki, pogadaj z gołębiem, wróć do klatki schodowej."
+unlock_hint = "Odblokowane po powrocie z dachu (Poziom 4)."
+quests = Array[ExtResource("3")]([SubResource("Quest_treats"), SubResource("Quest_pigeon"), SubResource("Quest_entrance")])
+objects = Array[ExtResource("2")]([SubResource("Obj_trees_topleft"), SubResource("Obj_trees_topright"), SubResource("Obj_bushes_left"), SubResource("Obj_bushes_bottomleft"), SubResource("Obj_pond"), SubResource("Obj_bushes_right"), SubResource("Obj_i_treat1"), SubResource("Obj_i_treat2"), SubResource("Obj_i_treat3"), SubResource("Obj_pigeon"), SubResource("Obj_i_photo"), SubResource("Obj_entrance")])
+mood = {
+"brightness": 0.97,
+"contrast": 0.94,
+"saturate": -0.18,
+"hue": 0
+}

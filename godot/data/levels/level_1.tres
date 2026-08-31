@@ -1,0 +1,135 @@
+[gd_resource type="Resource" script_class="LevelData" load_steps=18 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/LevelData.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/core/LevelObjectData.gd" id="2"]
+[ext_resource type="Script" path="res://scripts/core/QuestStepData.gd" id="3"]
+
+[sub_resource type="Resource" id="Obj_building"]
+script = ExtResource("2")
+id = "building"
+kind = "obstacle"
+rect = Rect2(480, 0, 650, 330)
+
+[sub_resource type="Resource" id="Obj_amphitheater"]
+script = ExtResource("2")
+id = "amphitheater"
+kind = "obstacle"
+rect = Rect2(680, 520, 420, 280)
+
+[sub_resource type="Resource" id="Obj_trees_left"]
+script = ExtResource("2")
+id = "trees-left"
+kind = "obstacle"
+rect = Rect2(0, 0, 230, 900)
+
+[sub_resource type="Resource" id="Obj_trees_right"]
+script = ExtResource("2")
+id = "trees-right"
+kind = "obstacle"
+rect = Rect2(1450, 0, 150, 600)
+
+[sub_resource type="Resource" id="Obj_building2"]
+script = ExtResource("2")
+id = "building2"
+kind = "obstacle"
+rect = Rect2(2550, 0, 650, 600)
+
+[sub_resource type="Resource" id="Obj_trees_right_edge"]
+script = ExtResource("2")
+id = "trees-right-edge"
+kind = "obstacle"
+rect = Rect2(3100, 0, 100, 900)
+
+[sub_resource type="Resource" id="Obj_river"]
+script = ExtResource("2")
+id = "river"
+kind = "obstacle"
+rect = Rect2(0, 800, 3200, 100)
+
+[sub_resource type="Resource" id="Obj_i_ball"]
+script = ExtResource("2")
+id = "i-ball"
+kind = "item"
+rect = Rect2(320, 430, 50, 50)
+item_id = &"ball"
+
+[sub_resource type="Resource" id="Obj_i_treat"]
+script = ExtResource("2")
+id = "i-treat"
+kind = "item"
+rect = Rect2(2350, 700, 50, 50)
+item_id = &"treat"
+
+[sub_resource type="Resource" id="Obj_i_photo"]
+script = ExtResource("2")
+id = "i-photo"
+kind = "item"
+rect = Rect2(1700, 700, 50, 50)
+item_id = &"photo"
+icon = "📷"
+
+[sub_resource type="Resource" id="Obj_entrance"]
+script = ExtResource("2")
+id = "entrance"
+kind = "goal"
+rect = Rect2(2500, 610, 120, 80)
+icon = "🏰"
+requires = {
+&"ball": 1,
+&"treat": 1
+}
+message = "Brama otwarta! Edek wchodzi do baszty pełnej tajemnic."
+
+[sub_resource type="Resource" id="Quest_ball"]
+script = ExtResource("3")
+id = "q1-ball"
+kind = "collect"
+label = "Znajdź piłeczkę na promenadzie"
+item_id = &"ball"
+count = 1
+
+[sub_resource type="Resource" id="Quest_treat"]
+script = ExtResource("3")
+id = "q1-treat"
+kind = "collect"
+label = "Znajdź smakołyk przy latarni"
+item_id = &"treat"
+count = 1
+
+[sub_resource type="Resource" id="Quest_entrance"]
+script = ExtResource("3")
+id = "q1-entrance"
+kind = "reach"
+label = "Wejdź przez bramę do baszty"
+obj_id = "entrance"
+
+[resource]
+script = ExtResource("1")
+id = "1"
+slug = "waly-chrobrego"
+title = "Wały Chrobrego"
+subtitle = "Wieczorny spacer nad Odrą"
+background = "waly"
+width = 3200.0
+height = 900.0
+spawn = Vector2(400, 650)
+ambient = "night"
+ambient_fx = "motes"
+intro = "Wieczorne światła Wałów Chrobrego migoczą nad Odrą. Edek wymyka się na spacer."
+objective = "Znajdź piłeczkę i smakołyk, potem wejdź przez bramę do baszty."
+unlock_hint = "Dostępne od początku — pierwsza wyprawa Edka."
+quests = Array[ExtResource("3")]([SubResource("Quest_ball"), SubResource("Quest_treat"), SubResource("Quest_entrance")])
+objects = Array[ExtResource("2")]([SubResource("Obj_building"), SubResource("Obj_amphitheater"), SubResource("Obj_trees_left"), SubResource("Obj_trees_right"), SubResource("Obj_building2"), SubResource("Obj_trees_right_edge"), SubResource("Obj_river"), SubResource("Obj_i_ball"), SubResource("Obj_i_treat"), SubResource("Obj_i_photo"), SubResource("Obj_entrance")])
+point_light = {
+"x": 750,
+"y": 450,
+"color": "rgba(255,180,80,0.85)",
+"intensity": 0.7
+}
+mood = {
+"sepia": true,
+"brightness": 1.0,
+"contrast": 1.08,
+"saturate": 0.05,
+"hue": 8
+}

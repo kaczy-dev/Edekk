@@ -1,0 +1,114 @@
+[gd_resource type="Resource" script_class="LevelData" load_steps=13 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/LevelData.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/core/LevelObjectData.gd" id="2"]
+[ext_resource type="Script" path="res://scripts/core/QuestStepData.gd" id="3"]
+
+[sub_resource type="Resource" id="Obj_center_tree"]
+script = ExtResource("2")
+id = "center-tree"
+kind = "obstacle"
+rect = Rect2(600, 0, 420, 340)
+
+[sub_resource type="Resource" id="Obj_flowerbed_l"]
+script = ExtResource("2")
+id = "flowerbed-l"
+kind = "obstacle"
+rect = Rect2(280, 340, 280, 220)
+
+[sub_resource type="Resource" id="Obj_flowerbed_r"]
+script = ExtResource("2")
+id = "flowerbed-r"
+kind = "obstacle"
+rect = Rect2(1040, 340, 280, 220)
+
+[sub_resource type="Resource" id="Obj_center_tree2"]
+script = ExtResource("2")
+id = "center-tree2"
+kind = "obstacle"
+rect = Rect2(2300, 150, 450, 550)
+
+[sub_resource type="Resource" id="Obj_trees_right_edge"]
+script = ExtResource("2")
+id = "trees-right-edge"
+kind = "obstacle"
+rect = Rect2(3100, 0, 100, 900)
+
+[sub_resource type="Resource" id="Obj_i_leaf1"]
+script = ExtResource("2")
+id = "i-leaf1"
+kind = "item"
+rect = Rect2(400, 700, 50, 50)
+item_id = &"leaf"
+
+[sub_resource type="Resource" id="Obj_i_leaf2"]
+script = ExtResource("2")
+id = "i-leaf2"
+kind = "item"
+rect = Rect2(2600, 700, 50, 50)
+item_id = &"leaf"
+
+[sub_resource type="Resource" id="Obj_i_leaf3"]
+script = ExtResource("2")
+id = "i-leaf3"
+kind = "item"
+rect = Rect2(800, 450, 50, 50)
+item_id = &"leaf"
+
+[sub_resource type="Resource" id="Obj_i_photo"]
+script = ExtResource("2")
+id = "i-photo"
+kind = "item"
+rect = Rect2(1800, 300, 50, 50)
+item_id = &"photo"
+icon = "📷"
+
+[sub_resource type="Resource" id="Obj_bench"]
+script = ExtResource("2")
+id = "bench"
+kind = "goal"
+rect = Rect2(720, 830, 160, 70)
+icon = "🍂"
+requires = {
+&"leaf": 3
+}
+message = "Edek zwija się w kłębek na ławce, otoczony jesiennymi liśćmi."
+
+[sub_resource type="Resource" id="Quest_leaves"]
+script = ExtResource("3")
+id = "q3-leaves"
+kind = "collect"
+label = "Zbierz 3 złote liście"
+item_id = &"leaf"
+count = 3
+
+[sub_resource type="Resource" id="Quest_bench"]
+script = ExtResource("3")
+id = "q3-bench"
+kind = "reach"
+label = "Zwiń się w kłębek na ławce"
+obj_id = "bench"
+
+[resource]
+script = ExtResource("1")
+id = "3"
+slug = "aleja-kasztanowa"
+title = "Aleja Kasztanowa"
+subtitle = "Złota jesień w Parku Kasprowicza"
+background = "park2"
+width = 3200.0
+height = 900.0
+spawn = Vector2(800, 800)
+ambient = "day"
+ambient_fx = "petals"
+intro = "Złota aleja szeleści pod łapkami. Edek brnie przez stertę liści."
+objective = "Zbierz 3 złote liście i odpocznij na ławce."
+unlock_hint = "Odblokowane po zwiedzeniu Pomnika Czynu Polaków (Poziom 2)."
+quests = Array[ExtResource("3")]([SubResource("Quest_leaves"), SubResource("Quest_bench")])
+objects = Array[ExtResource("2")]([SubResource("Obj_center_tree"), SubResource("Obj_flowerbed_l"), SubResource("Obj_flowerbed_r"), SubResource("Obj_center_tree2"), SubResource("Obj_trees_right_edge"), SubResource("Obj_i_leaf1"), SubResource("Obj_i_leaf2"), SubResource("Obj_i_leaf3"), SubResource("Obj_i_photo"), SubResource("Obj_bench")])
+mood = {
+"brightness": 1.06,
+"contrast": 1.06,
+"saturate": 0.12,
+"hue": 14
+}

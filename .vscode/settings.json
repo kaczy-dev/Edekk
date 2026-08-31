@@ -1,0 +1,15 @@
+{
+  "godotTools.editorPath.godot4": "",
+  "godotTools.lsp.serverPort": 6005,
+  "godotTools.lsp.serverAddress": "127.0.0.1",
+  "editor.formatOnSave": true,
+  "files.associations": {
+    "*.tscn": "gdresource",
+    "*.tres": "gdresource",
+    "*.godot": "ini"
+  },
+  "[gdscript]": {
+    "editor.insertSpaces": false,
+    "editor.tabSize": 4
+  }
+}

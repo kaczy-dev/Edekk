@@ -1,0 +1,114 @@
+[gd_resource type="Resource" script_class="LevelData" load_steps=11 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/LevelData.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/core/LevelObjectData.gd" id="2"]
+[ext_resource type="Script" path="res://scripts/core/QuestStepData.gd" id="3"]
+
+[sub_resource type="Resource" id="Obj_wall_top"]
+script = ExtResource("2")
+id = "wall-top"
+kind = "obstacle"
+rect = Rect2(0, 0, 1000, 40)
+
+[sub_resource type="Resource" id="Obj_wall_bottom"]
+script = ExtResource("2")
+id = "wall-bottom"
+kind = "obstacle"
+rect = Rect2(0, 660, 1000, 40)
+
+[sub_resource type="Resource" id="Obj_wall_left"]
+script = ExtResource("2")
+id = "wall-left"
+kind = "obstacle"
+rect = Rect2(0, 0, 40, 700)
+
+[sub_resource type="Resource" id="Obj_wall_right_top"]
+script = ExtResource("2")
+id = "wall-right-top"
+kind = "obstacle"
+rect = Rect2(960, 0, 40, 300)
+
+[sub_resource type="Resource" id="Obj_wall_right_bottom"]
+script = ExtResource("2")
+id = "wall-right-bottom"
+kind = "obstacle"
+rect = Rect2(960, 400, 40, 300)
+
+[sub_resource type="Resource" id="Obj_sofa"]
+script = ExtResource("2")
+id = "sofa"
+kind = "obstacle"
+rect = Rect2(320, 150, 140, 135)
+
+[sub_resource type="Resource" id="Obj_bookshelf"]
+script = ExtResource("2")
+id = "bookshelf"
+kind = "obstacle"
+rect = Rect2(680, 150, 90, 92)
+
+[sub_resource type="Resource" id="Obj_bowl"]
+script = ExtResource("2")
+id = "i-bowl"
+kind = "item"
+rect = Rect2(150, 550, 50, 50)
+item_id = &"bowl"
+
+[sub_resource type="Resource" id="Obj_ball"]
+script = ExtResource("2")
+id = "i-ball"
+kind = "item"
+rect = Rect2(500, 550, 50, 50)
+item_id = &"ball"
+
+[sub_resource type="Resource" id="Obj_door"]
+script = ExtResource("2")
+id = "door"
+kind = "goal"
+rect = Rect2(955, 300, 50, 100)
+icon = "🚪"
+requires = {
+&"bowl": 1,
+&"ball": 1
+}
+message = "Pierwszy spacer w nowej okolicy może się zacząć!"
+
+[sub_resource type="Resource" id="Quest_bowl"]
+script = ExtResource("3")
+id = "q7-bowl"
+kind = "collect"
+label = "Znajdź miskę z karmą"
+item_id = &"bowl"
+count = 1
+
+[sub_resource type="Resource" id="Quest_ball"]
+script = ExtResource("3")
+id = "q7-ball"
+kind = "collect"
+label = "Znajdź piłeczkę"
+item_id = &"ball"
+count = 1
+
+[sub_resource type="Resource" id="Quest_door"]
+script = ExtResource("3")
+id = "q7-door"
+kind = "reach"
+label = "Wyjdź drzwiami na spacer"
+obj_id = "door"
+
+[resource]
+script = ExtResource("1")
+id = "7"
+slug = "salon"
+title = "Salon"
+subtitle = "Pierwszy poranek na Łuczniczej"
+background = ""
+width = 1000.0
+height = 700.0
+spawn = Vector2(150, 350)
+ambient = "day"
+intro = "Edek budzi się w nowym salonie — pachnie chrupkami i drewnem z kominka. Czas się rozejrzeć."
+objective = "Znajdź miskę i piłeczkę, potem wyjdź drzwiami na pierwszy spacer po okolicy."
+unlock_hint = "Odblokowane po zadomowieniu się na Łuczniczej 43 (Poziom 6)."
+quests = Array[ExtResource("3")]([SubResource("Quest_bowl"), SubResource("Quest_ball"), SubResource("Quest_door")])
+objects = Array[ExtResource("2")]([SubResource("Obj_wall_top"), SubResource("Obj_wall_bottom"), SubResource("Obj_wall_left"), SubResource("Obj_wall_right_top"), SubResource("Obj_wall_right_bottom"), SubResource("Obj_sofa"), SubResource("Obj_bookshelf"), SubResource("Obj_bowl"), SubResource("Obj_ball"), SubResource("Obj_door")])
+mood = {}
