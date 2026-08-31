@@ -14,7 +14,15 @@ extends Node
 ## totalHops/totalDistanceWalked, dailyHistory, zenMode (session-only in TS
 ## too, doesn't need persistence), tutorialStage.
 
-const SAVE_PATH := "user://progress.json"
+## A `var`, not a `const` — GUT test scripts that call reset_progress()
+## override this in before_all() to a disposable path (see
+## tests/integration/test_gameplay.gd and test_level7.gd), so a local test
+## run no longer needs the manual cp-before/cp-after backup dance around
+## the real save documented in plan31-08.md's automated-smoke-test
+## sections (Faza 0 point 3 of docs/ROADMAP.md — "GUT przestaje pisać do
+## prawdziwego progress.json"). Real gameplay never touches this — only
+## test setup reassigns it.
+var save_path := "user://progress.json"
 
 ## "Principal lead" review (plan31-08.md, point 6): the save format was a
 ## flat JSON object with no version field. Added now, while there's still
@@ -97,7 +105,7 @@ func record_level_completed(level_id: String, next_level_id: String, elapsed_ms:
 ## AtomicSave.gd for why the write has to be atomic (.tmp + rename) rather
 ## than a direct in-place write.
 func save_progress() -> void:
-	AtomicSave.write_json(SAVE_PATH, {
+	AtomicSave.write_json(save_path, {
 		"schema_version": SCHEMA_VERSION,
 		"unlocked_levels": unlocked_levels,
 		"level_progress": level_progress,
@@ -106,9 +114,9 @@ func save_progress() -> void:
 	})
 
 func load_progress() -> void:
-	if not FileAccess.file_exists(SAVE_PATH):
+	if not FileAccess.file_exists(save_path):
 		return
-	var file := FileAccess.open(SAVE_PATH, FileAccess.READ)
+	var file := FileAccess.open(save_path, FileAccess.READ)
 	if file == null:
 		return
 	var parsed = JSON.parse_string(file.get_as_text())
@@ -117,7 +125,7 @@ func load_progress() -> void:
 		# per-session header) — a corrupted/truncated save falling back to
 		# defaults is exactly the kind of silent data loss Część 16's crash
 		# logger exists to make traceable after the fact.
-		push_warning("[%s] ProgressStore: %s did not contain a JSON object, ignoring" % [Time.get_datetime_string_from_system(), SAVE_PATH])
+		push_warning("[%s] ProgressStore: %s did not contain a JSON object, ignoring" % [Time.get_datetime_string_from_system(), save_path])
 		return
 
 	# Missing schema_version means "written before this field existed" —
@@ -145,5 +153,5 @@ func reset_progress() -> void:
 	level_progress = {}
 	talked_npcs = {}
 	best_level_times = {}
-	if FileAccess.file_exists(SAVE_PATH):
-		DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))
+	if FileAccess.file_exists(save_path):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(save_path))

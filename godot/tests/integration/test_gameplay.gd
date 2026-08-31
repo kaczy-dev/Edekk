@@ -13,16 +13,29 @@ extends GutTest
 ##
 ## Run via GUT's CLI runner for CI:
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://tests -gexit
-## IMPORTANT: this test calls ProgressStore.reset_progress(), which writes
-## the REAL user://progress.json — back it up before running outside of a
-## disposable/CI environment and restore after (see plan31-08.md's
-## "automatyczny smoke test" sections for why and how this session did it
-## manually around every MCP-driven test run).
+## This test calls ProgressStore.reset_progress() — before_all()/after_all()
+## below redirect ProgressStore.save_path to a disposable file for the
+## duration of this script, so it no longer touches the REAL
+## user://progress.json (Faza 0 point 3, docs/ROADMAP.md — this used to
+## require a manual backup/restore around every run, per plan31-08.md's
+## "automatyczny smoke test" notes; that workaround is no longer needed for
+## THIS test file specifically).
 
 const Level2Scene := preload("res://scenes/levels/Level2.tscn")
+const TEST_SAVE_PATH := "user://test_progress.json"
 
 var _level: Node
 var _player: CharacterBody2D
+var _real_save_path: String
+
+func before_all() -> void:
+	_real_save_path = ProgressStore.save_path
+	ProgressStore.save_path = TEST_SAVE_PATH
+
+func after_all() -> void:
+	ProgressStore.save_path = _real_save_path
+	if FileAccess.file_exists(TEST_SAVE_PATH):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(TEST_SAVE_PATH))
 
 func before_each() -> void:
 	ProgressStore.reset_progress()

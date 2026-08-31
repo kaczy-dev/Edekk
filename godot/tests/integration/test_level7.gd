@@ -2,11 +2,27 @@ extends GutTest
 ## GUT port of the ad-hoc Level7SmokeTest.gd — full end-to-end playthrough
 ## of Level 7 ("Salon"): collect bowl + ball, reach the door, verify level
 ## completion and progress persistence.
+##
+## Redirects ProgressStore.save_path to a disposable file for the duration
+## of this script (see test_gameplay.gd's before_all()/after_all() for the
+## same pattern and why) — this test also calls reset_progress(), which used
+## to write the REAL user://progress.json.
 
 const Level7Scene := preload("res://scenes/levels/Level7.tscn")
+const TEST_SAVE_PATH := "user://test_progress.json"
 
 var _level: Node
 var _player: CharacterBody2D
+var _real_save_path: String
+
+func before_all() -> void:
+	_real_save_path = ProgressStore.save_path
+	ProgressStore.save_path = TEST_SAVE_PATH
+
+func after_all() -> void:
+	ProgressStore.save_path = _real_save_path
+	if FileAccess.file_exists(TEST_SAVE_PATH):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(TEST_SAVE_PATH))
 
 func before_each() -> void:
 	ProgressStore.reset_progress()
