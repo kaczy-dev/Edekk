@@ -1,19 +1,20 @@
-# Godot 4 — projekt docelowy migracji
+a# Godot 4 — projekt docelowy migracji
 
 Status na 2026-08-31 (koniec bardzo długiej sesji): **7 grywalnych poziomów, pełna warstwa
 architektoniczna, formalny framework testowy.** Poziomy 1–6 (Wały Chrobrego → Łucznicza 43)
-+ nowy **Poziom 7 "Salon"** (wnętrze domu, prawdziwe assety Kenney — podłoga jako `TileSet`/
-`TileMapLayer`, drzwi + meble jako zweryfikowane cropy z `TopDownHouse_*.png`). Gracz ma
-pełny zestaw: ruch/sprint/hop (`TESTED` w edytorze), squash/stretch, lean, sprint-drift,
-ghost-trail, State Machine (Idle/Walk/Sprint/Hop — warstwa klasyfikująca, **nie** napędza
-fizyki, świadoma decyzja), StatusEffectComponent, InteractionDetector ("Wciśnij E").
-Sześć autoloadów: `ProgressStore`, `AudioService`, `SettingsStore`, `EventBus`,
-`DebugConsole` (`~`, `/god`/`/give_item`/`/load_level`/`/clear_save`), `SceneRouter` (fade
-przejść). Kolizje na jawnych warstwach (`COLLISION_MATRIX.md`). i18n: UI chrome
-przetłumaczone, **gra formalnie jednojęzyczna PL na stałe** (decyzja użytkownika). Testy:
-**GUT** (`godot/addons/gut/`) w `res://tests/integration/` — 37 asercji, uruchamiane z CLI
-(`godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://tests/integration -gexit`), nie
-tylko ręcznie przez MCP. Import assetów: `godot/tools/import_assets.ps1` (batch, headless).
+
+- nowy **Poziom 7 "Salon"** (wnętrze domu, prawdziwe assety Kenney — podłoga jako `TileSet`/
+  `TileMapLayer`, drzwi + meble jako zweryfikowane cropy z `TopDownHouse_*.png`). Gracz ma
+  pełny zestaw: ruch/sprint/hop (`TESTED` w edytorze), squash/stretch, lean, sprint-drift,
+  ghost-trail, State Machine (Idle/Walk/Sprint/Hop — warstwa klasyfikująca, **nie** napędza
+  fizyki, świadoma decyzja), StatusEffectComponent, InteractionDetector ("Wciśnij E").
+  Sześć autoloadów: `ProgressStore`, `AudioService`, `SettingsStore`, `EventBus`,
+  `DebugConsole` (`~`, `/god`/`/give_item`/`/load_level`/`/clear_save`), `SceneRouter` (fade
+  przejść). Kolizje na jawnych warstwach (`COLLISION_MATRIX.md`). i18n: UI chrome
+  przetłumaczone, **gra formalnie jednojęzyczna PL na stałe** (decyzja użytkownika). Testy:
+  **GUT** (`godot/addons/gut/`) w `res://tests/integration/` — 37 asercji, uruchamiane z CLI
+  (`godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://tests/integration -gexit`), nie
+  tylko ręcznie przez MCP. Import assetów: `godot/tools/import_assets.ps1` (batch, headless).
 
 **Pełny, chronologiczny log tej sesji (co, dlaczego, jakie bugi złapane i naprawione) —
 `plan31-08.md` w repo-root.** To jest kanoniczne źródło szczegółów, ten plik to tylko
@@ -30,9 +31,9 @@ ręcznym retestem, nie w pośpiechu. Reszta rekomendacji (1,2,3,5,6,7) zamknięt
 
 - `project.godot` — Godot 4.7, renderer GL Compatibility, viewport 1280×720, `InputMap`
   (`move_up/down/left/right`, `sprint`, `hop`, `interact`, `inventory`, `pause` — WASD/strzałki
-  + Shift/Space/E/I/Esc), `run/main_scene` → `scenes/levels/Level1.tscn` (nie zmieniony mimo
-  że `scenes/menu/LevelSelect.tscn` już istnieje — patrz niżej).
-  `[autoload] ProgressStore, AudioService, SettingsStore`.
+  - Shift/Space/E/I/Esc), `run/main_scene` → `scenes/levels/Level1.tscn` (nie zmieniony mimo
+    że `scenes/menu/LevelSelect.tscn` już istnieje — patrz niżej).
+    `[autoload] ProgressStore, AudioService, SettingsStore`.
 - `scripts/infrastructure/ProgressStore.gd` — autoload singleton (świadomie, per "autoloads
   used sparingly" — to naprawdę globalny, trwały stan). Odpowiednik persystowanej części
   `gameStore.ts` (zustand `persist`): `unlocked_levels`, `level_progress` (completed +
@@ -178,21 +179,21 @@ ręcznym retestem, nie w pośpiechu. Reszta rekomendacji (1,2,3,5,6,7) zamknięt
   (5) drobinki ambientFx widoczne, subtelne; (6) czy `level_N.tres` się parsuje, (7) czy
   scena startuje bez błędów z widocznym HUD-em, (8) L3/L4 — grywalne od startu do celu
   (nie mają NPC-ów), (9) L2/L5/L6 — NPC + prezent + patrol (emoji odwraca się z kierunkiem)
-  + quest "talk", (10) cel blokowany/ukończony poprawnie, (11) wiadomość NPC/goal w
-  `MessageLabel`, (12) zebrany item nie wraca po restarcie, (13) unlock + best-time w
-  LevelSelect po restarcie gry, (14) dźwięki pickup/completion bez trzasków, (15)
-  **post-FX color grade faktycznie coś zmienia wizualnie** (może się okazać cichym no-op na
-  GL Compatibility — R2 z audytu nadal formalnie otwarte — **potwierdzone działające przez
-  użytkownika**), (16) subtelna biała ramka wokół przeszkód widoczna, nie za mocna/za słaba
-  (**potwierdzone działające przez użytkownika**); (17) **[NOWE, nieprzetestowane]**
-  trzymanie Shift podczas ruchu zużywa energię widoczną w HUD, stanie w miejscu ją odzyskuje,
-  zwykłe chodzenie nie zmienia jej wcale; (18) sprint faktycznie się wyłącza (nie tylko wolniej
-  biegnie) gdy energia spadnie poniżej progu; (19) poniżej 30% energii HUD pokazuje
-  "(Zmęczenie)" na czerwono; (20) **[NOWE, nieprzetestowane]** `LevelSelect.tscn` pokazuje
-  przycisk "Ustawienia" obok listy poziomów, otwiera `SettingsMenu.tscn` z działającym
-  dropdownem trudności/suwakiem głośności/checkboxem wyciszenia; (21) zmiana trudności na
-  "hard" i start poziomu daje niższą startową energię i szybszy drenaż; (22) wyciszenie
-  faktycznie wycisza dźwięki pickup/completion; (23) ustawienia przetrwają restart gry.
+  - quest "talk", (10) cel blokowany/ukończony poprawnie, (11) wiadomość NPC/goal w
+    `MessageLabel`, (12) zebrany item nie wraca po restarcie, (13) unlock + best-time w
+    LevelSelect po restarcie gry, (14) dźwięki pickup/completion bez trzasków, (15)
+    **post-FX color grade faktycznie coś zmienia wizualnie** (może się okazać cichym no-op na
+    GL Compatibility — R2 z audytu nadal formalnie otwarte — **potwierdzone działające przez
+    użytkownika**), (16) subtelna biała ramka wokół przeszkód widoczna, nie za mocna/za słaba
+    (**potwierdzone działające przez użytkownika**); (17) **[NOWE, nieprzetestowane]**
+    trzymanie Shift podczas ruchu zużywa energię widoczną w HUD, stanie w miejscu ją odzyskuje,
+    zwykłe chodzenie nie zmienia jej wcale; (18) sprint faktycznie się wyłącza (nie tylko wolniej
+    biegnie) gdy energia spadnie poniżej progu; (19) poniżej 30% energii HUD pokazuje
+    "(Zmęczenie)" na czerwono; (20) **[NOWE, nieprzetestowane]** `LevelSelect.tscn` pokazuje
+    przycisk "Ustawienia" obok listy poziomów, otwiera `SettingsMenu.tscn` z działającym
+    dropdownem trudności/suwakiem głośności/checkboxem wyciszenia; (21) zmiana trudności na
+    "hard" i start poziomu daje niższą startową energię i szybszy drenaż; (22) wyciszenie
+    faktycznie wycisza dźwięki pickup/completion; (23) ustawienia przetrwają restart gry.
 
 ## Kolejne kroki
 

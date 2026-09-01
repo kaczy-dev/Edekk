@@ -16,6 +16,13 @@ just accidental non-collision because `Area2D` overlap logic guarded on
 | 3 | Items  | `ItemPickup.tscn`, `GoalArea.tscn` (both `Area2D`)    |
 | 4 | NPCs   | `NpcActor.tscn` (`Area2D`)                            |
 | 5 | Danger | Reserved for future `trigger`-kind hazard objects (not built yet — no ported level uses `trigger`, see `MIGRATION_MATRIX.md`) |
+| 6 | Enemies | `EnemyActor.tscn` (`CharacterBody2D`, `feature/rpg-enemy`) |
+| 7 | PlayerHitbox | `Hitbox` (`Area2D`) child of `Player.tscn` — `monitoring` stays on permanently; `PlayerHitbox.apply_hits()` is called explicitly at the attack's hit-window instead of toggling it (`feature/rpg-combat`, see `PlayerHitbox.gd`'s header for why) |
+| 8 | EnemyHitbox | `Hitbox` (`Area2D`) child of `EnemyActor.tscn` — same "always monitoring, called explicitly" design as PlayerHitbox (`feature/rpg-combat`) |
+
+Layers 6-8 reserved by `rpg.md`'s combat plan on `feature/rpg-stats`, consumed by
+`feature/rpg-enemy` (layer 6) and `feature/rpg-combat` (layers 7-8, with real nodes now
+in `Player.tscn`/`EnemyActor.tscn` — not reserved-only anymore, unlike Danger above).
 
 Goal areas share the Items layer rather than getting their own — mechanically
 identical to a pickup (an `Area2D` the player overlaps once), not a distinct
@@ -30,6 +37,9 @@ physics concern.
 | `ItemPickup`, `GoalArea`     | 3     | 2         | Detects Player only — prevents an obstacle or another item ever firing `body_entered`. |
 | `NpcActor`                   | 4     | 2         | Same reasoning as pickups — Player-only overlap.                    |
 | `InteractionArea` (Player child, `InteractionDetector.gd`) | 0 (none) | 3\|4 (12) | Detects both Items and NPCs (`GoalArea` shares the Items layer but deliberately doesn't implement `interact()` — see InteractionDetector.gd header). `collision_layer = 0` because nothing needs to detect the detector itself, only the reverse. |
+| `EnemyActor` (`CharacterBody2D`)     | 6 (32) | 1         | Physically collides with World only, same reasoning as Player — its own attack/hurt detection goes through its `Hitbox`/`HealthComponent`, not `move_and_slide()`. |
+| `Player`'s `Hitbox` (`Area2D`, `PlayerHitbox.gd`) | 7 (64) | 6 (32)    | Detects Enemies only. |
+| `EnemyActor`'s `Hitbox` (`Area2D`, `EnemyHitbox.gd`) | 8 (128) | 2 (2)   | Detects Player only. |
 
 Implemented in `plan31-08.md`, "Część 4": `InteractionDetector.gd` on
 `Player.tscn`'s `InteractionArea` (100px `CircleShape2D`, present since the

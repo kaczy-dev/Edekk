@@ -7,9 +7,11 @@ Tool-specific entry points (`CLAUDE.md`, `SKILLS.md`) point here — keep the su
 
 ## What this project is
 
-**Przygody Edka** ("Edek's Adventures") — a 2D top-down with three.js 3d exploration game about Edek, a smoke-grey Maine Coon cat, played across four hand-painted worlds: Salon, Ogród (garden), Strych (attic) and Dach nocą (roof at night) and more.
+**Przygody Edka** ("Edek's Adventures") — a 2D top-down exploration game about Edek, a smoke-grey Maine Coon cat, spanning multiple hand-painted worlds: Salon, Ogród (garden), Strych (attic), and Dach nocą (roof at night).
 
-The game renders to a single `<canvas>` driven by a hand-written engine; everything around it (HUD, menus, dialogs) is React.
+Gameplay runs on a Phaser 4.2.1 scene (`game/phaser/LevelScene.ts`); a hand-written Canvas2D engine (`game/engine.ts`) is dead fallback code kept for reference only. Everything around the game surface (HUD, menus, dialogs) is React.
+
+> **Godot 4 migration in progress.** The project is being migrated off Phaser to Godot 4 — see `god/godot.md`, `god/godot2.md`, and `docs/migration/` (audit + migration matrix) before making changes to game logic. A short-lived Three.js/React Three Fiber 3D prototype (`/poziom3d`) existed briefly and was removed (2026-08-31) as out of scope for the migration.
 
 > **All player-facing copy is Polish.** Level titles, quest labels, dialog, buttons and error screens are written in Polish. Match that when adding UI text. Code, comments and identifiers stay English.
 
@@ -26,6 +28,24 @@ The game renders to a single `<canvas>` driven by a hand-written engine; everyth
 | `npm run format`    | `prettier --write .`                                   |
 
 **Before declaring work done, run `npm run typecheck` and `npm run build`.** Both currently pass.
+
+### Godot headless test runner (GUT)
+
+There is one standardized way to run the Godot test suite without opening the editor — use
+this instead of composing a `godot ... -s addons/gut/gut_cmdln.gd` command from memory each
+session, and instead of running tests through the interactive editor (which collides with any
+other agent/process that has the project open in the editor at the same time):
+
+```bash
+GODOT_BIN="/path/to/Godot_v4.7.2-stable_win64.exe" ./scripts/run_godot_tests.sh          # full suite
+GODOT_BIN="/path/to/Godot_v4.7.2-stable_win64.exe" ./scripts/run_godot_tests.sh res://tests/unit/test_weather_overlay.gd   # one file
+```
+
+PowerShell equivalent: `scripts/run_godot_tests.ps1` (same `GODOT_BIN` env var, same args).
+`GODOT_BIN` must point to a local Godot 4.7 binary — there's no single fixed install path on
+every machine, so it's not hardcoded. There is no CI for this project (solo dev, no PRs) —
+run this script by hand (or have an agent run it) before declaring any round of Godot work
+done.
 
 ### Two caveats
 
@@ -62,6 +82,8 @@ routes/poziom.$id.tsx
 
 ### `src/game/` — engine and domain logic
 
+**2D Engine (existing):**
+
 | File              | Responsibility                                                                                                                                       |
 | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `engine.ts`       | `GameEngine`: RAF loop, movement, sliding collision, camera (dead-zone follow + look-ahead + zoom), gait/animation state, sprite and lighting caches |
@@ -75,6 +97,13 @@ routes/poziom.$id.tsx
 | `tierStyle.ts`    | Visual language for distance tiers, including a colour-blind-safe set with redundant shape + glyph                                                   |
 | `goalTracking.ts` | `useGoalTracks()` — the one hook that smooths distance/direction to reach-quest goals                                                                |
 | `particles.ts`    | Pooled particle system: ambient drift, pickup sparkle, sting burst, paw dust                                                                         |
+
+**Phaser engine (production, `game/phaser/`):**
+
+| File              | Responsibility                                                                                                                    |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `phaser/LevelScene.ts` | Phaser 4.2.1 Scene: movement, physics, collision, hop/drift movement juice, camera follow/pulseZoom/shake — the live engine for all 6 levels |
+| `phaser/AtmosphereFX.ts` | Phaser FX pipeline helpers (bloom, filters, etc. for Phaser 4.2.1) — API usage unverified against runtime, see `docs/migration/MIGRATION_RISKS.md` |
 
 ### `src/store/gameStore.ts`
 
@@ -133,6 +162,10 @@ Several features are linked by string, not by type. When renaming, grep for all 
 - Quest `objId` values in `levels.ts` must match an object `id` in the same level.
 - `proximity.ts` classifies goals by matching **whole words** in the object id (`gate`, `chest`, `bowl`, …) — the word-boundary split exists so a future id containing "box" is not read as a chest.
 - NPC gifts are recorded as `"<npcObjectId>-gift"`; only `inventory.ts` knows that convention.
+
+### 7. Read Phaser scene state imperatively, not via React state
+
+Read fast-changing scene state (position, velocity) directly off the Phaser Scene/GameObject, never sync it into React state every frame — that causes 60 re-renders per second and will freeze the game. Only sync UI-relevant values (energy, inventory) into React/Zustand.
 
 ---
 

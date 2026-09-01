@@ -425,6 +425,17 @@ Skills: `godot-ui`, `save-load`, `input-handling`, `audio-system`, `hud-system`.
 
 ### 7.1 Kierunek artystyczny — ustalić przed pierwszym pikselem
 
+> **AKTUALIZACJA (2026-08-31, `rpg.md` sekcja 5d)**: użytkownik rozstrzygnął **na stałe**,
+> że kierunek artystyczny **całej gry** (nie tylko warstwy combat) przechodzi na
+> **współczesne miasto** (chuligani, automaty, ekonomia, cykl dobowy — patrz `rpg.md`
+> sekcje 6/10a). Sekcja poniżej ("ciepła ilustracja / książka obrazkowa", kot w
+> historycznym Szczecinie) opisuje **decyzję nieaktualną** dla nowej zawartości —
+> zachowana tu wyłącznie jako dokumentacja tego, w jakim stylu są L1-L7 (które
+> **zostają nietknięte**, zgodnie z zasadą "nie przebudowujemy przetestowanej
+> zawartości") i jako historia decyzji. **Nowe UI/menu/poziomy idą w kierunku
+> współczesnym**, nie tym opisanym niżej — nie traktować tej sekcji jako wzorca przy
+> nowej pracy nad Fazą 6.
+
 To gra o kocie w **realnym Szczecinie** — Wały Chrobrego, Park Kasprowicza, Aleja
 Kasztanowa, Łucznicza 43. To jest gotowy, mocny kierunek i szkoda go zmarnować na
 generyczny ciemny motyw z neonem.

@@ -1,5 +1,5 @@
 {
-  "servers": {
+  "mcpServers": {
     "supabase": {
       "type": "http",
       "url": "https://mcp.supabase.com/mcp"
@@ -34,6 +34,11 @@
       "type": "stdio",
       "command": "npx",
       "args": ["-y", "@modelcontextprotocol/server-docker"]
+    },
+    "godot": {
+      "command": "npx",
+      "args": ["-y", "@coding-solo/godot-mcp"],
+      "env": {}
     }
   }
 }
