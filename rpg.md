@@ -1963,3 +1963,57 @@ panelami).
 - **Bez wizualnej weryfikacji interakcji** — znane ograniczenie z sekcji 11d
   (`SendKeys` nie dociera do realnego okna gry), więc nie dało się nacisnąć Escape na
   żywo i zobaczyć menu w akcji; logika potwierdzona wyłącznie przez GUT.
+
+## 26. Redesign MainMenu — animacje wejścia/hover, bez zmiany nawigacji — ZROBIONE (2026-09-02)
+
+Czysto prezentacyjny przebieg, scoped do `scenes/menu/MainMenu.tscn` +
+`scripts/presentation/menu/MainMenu.gd` — reszta sesji 11a już zbudowała fundament
+(theme `menu_theme.tres` z `build_menu_theme.gd`, ambient życie tła, `DayNightOverlay`,
+pop-in panelu ze skalą+fade), więc ta runda dokłada animacje interakcji zamiast
+przebudowywać layout od zera. Wszystkie istniejące przyciski nawigacyjne
+(Kontynuuj/Nowa gra/Poziomy/Ustawienia/Wyjdź) i ich sygnały zostały bez zmian — zero
+ingerencji w `_on_*_pressed()`.
+
+- **Staggered wejście przycisków** — po zakończeniu pop-inu panelu (`tween_callback`),
+  każdy widoczny przycisk fade+slide'uje się z małym opóźnieniem (`0.06s` na przycisk,
+  `Vector2(0, 14)` przesunięcia), więc kolumna przycisków "składa się" zamiast pojawić
+  się naraz — subtelniejsze niż jeden zbiorowy fade.
+- **Hover/focus feedback** — każdy przycisk dostaje scale-pop (`1.04`) na
+  `mouse_entered`/`focus_entered`, cofnięty na `mouse_exited`/`focus_exited`; `pivot_offset`
+  wyliczany z rzeczywistego rozmiaru po `resized`, żeby skalowanie było wyśrodkowane
+  niezależnie od układu VBoxContainer. Kolor/StyleBox nadal w całości z
+  `menu_theme.tres` (bez duplikowania logiki tu) — animacja dotyczy tylko transformu.
+- **Idle "oddech" tytułu** — nieskończenie zapętlony sinusoidalny bob (`±3px`, `2.4s`
+  cyklu) na etykiecie "EDEK", żeby ekran nie był całkowicie statyczny w spoczynku;
+  celowo bardzo subtelny, w duchu restrykcji `build_menu_theme.gd` ("nie
+  neon-cyberpunk").
+- **`AccentLine`** (nowy `ColorRect`, `120×2px`, kolor cyan-accentu z motywu, wyśrodkowany
+  `size_flags_horizontal = SHRINK_CENTER`) między podtytułem a przyciskami — drobny,
+  czysto wizualny akcent oddzielający nagłówek od nawigacji, spójny z paletą accentu z
+  `build_menu_theme.gd`.
+- **Cała warstwa tekstowa po polsku** — bez nowych stringów wymagających tłumaczenia (tylko
+  animacje istniejących elementów).
+- **Walidacja**: `gdscript-toolkit:gdscript-format --verify-structure` na
+  `MainMenu.gd` (bez nowego `class_name` — istniejąca klasa `MainMenu`, więc cache-refresh
+  pominięty). Headless boot-check (`--quit-after 2`) — czysty, bez błędów/parse errors.
+- **Testy**: po drodze złapany fałszywy alarm — w trakcie tej rundy w tym samym
+  repo trwała współbieżnie (inna sesja) niescommitowana praca nad sekcją 25
+  (`PauseMenu.gd`/`LevelRuntime.gd`), która chwilowo dawała 226/241 (brakujący
+  cache-refresh nowego `class_name PauseMenu` w danym uruchomieniu środowiska łamał
+  `LevelRuntime`) — potwierdzone przez `git stash` na moich plikach, że to nie ja to
+  powodowałem. Ta praca skończyła się i została scommitowana osobno
+  (`f5c929ca`) w trakcie mojej rundy. Finalny stan po scaleniu: **249/249 PASS, 437
+  asercji**, boot-check czysty. Commitowane tu są wyłącznie pliki MainMenu + ten wpis.
+- **Wizualna weryfikacja — udana za trzecim razem**: pierwsze dwa uruchomienia
+  `mcp__godot__run_project` trafiły na środowisko wciąż współdzielone z inną aktywną
+  sesją (lądowały od razu w środku Level1 z realnym postępem questów, a jeden zrzut
+  ekranu złapał zamiast okna gry okno przeglądarki — zatłoczone środowisko
+  wielookienkowe). Po tym jak współbieżna sesja zakończyła i scommitowała swoją pracę
+  (`f5c929ca`), kolejne uruchomienie wylądowało poprawnie w `MainMenu.tscn` i zrzut
+  ekranu (`GetWindowRect`/`SetForegroundWindow`/`Graphics.CopyFromScreen`, metoda z
+  sekcji 10c) złapał czysty kadr: tytuł "EDEK" + podtytuł "kot w mieście" + `AccentLine`,
+  panel z pięcioma przyciskami (Kontynuuj z podsumowaniem zapisu "Dzień 1 · 0 zł" /
+  Nowa gra / Poziomy / Ustawienia / Wyjdź), ambient piesi w tle, i widoczny hover/focus
+  highlight (cyjanowa obwódka) na domyślnie zogniskowanym przycisku Kontynuuj —
+  potwierdza, że `_wire_hover_feedback()` faktycznie działa w praktyce, nie tylko w
+  teorii testów.

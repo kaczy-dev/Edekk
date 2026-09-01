@@ -85,8 +85,14 @@ theme_type_variation = &"Caption"
 horizontal_alignment = 1
 text = "kot w mieście"
 
+[node name="AccentLine" type="ColorRect" parent="Panel/VBox"]
+custom_minimum_size = Vector2(120, 2)
+layout_mode = 2
+size_flags_horizontal = 4
+color = Color(0.196, 0.749, 0.847, 0.55)
+
 [node name="Spacer" type="Control" parent="Panel/VBox"]
-custom_minimum_size = Vector2(0, 8)
+custom_minimum_size = Vector2(0, 10)
 layout_mode = 2
 
 [node name="ContinueButton" type="Button" parent="Panel/VBox"]
