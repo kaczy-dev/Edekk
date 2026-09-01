@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="TransitDestination" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/transit/TransitDestination.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+display_name = "Park Kasprowicza"
+target_scene_path = "res://scenes/levels/Level2.tscn"
+cost = 4
+travel_minutes = 30

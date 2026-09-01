@@ -1,0 +1,20 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/gameplay/ui/HealthBar.gd" id="1"]
+
+[node name="HealthBar" type="Control"]
+custom_minimum_size = Vector2(120, 20)
+offset_right = 120.0
+offset_bottom = 20.0
+script = ExtResource("1")
+value = 1.0
+
+[node name="Background" type="ColorRect" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.15, 0.13, 0.11, 0.85)
+
+[node name="Fill" type="ColorRect" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.29, 0.78, 0.32, 1)

@@ -1,0 +1,42 @@
+[gd_scene load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://scripts/gameplay/enemies/EnemyActor.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/gameplay/combat/HealthComponent.gd" id="2"]
+[ext_resource type="Script" path="res://scripts/gameplay/enemies/state_machine/EnemyStateMachine.gd" id="3"]
+[ext_resource type="Resource" path="res://data/enemies/thug.tres" id="4"]
+[ext_resource type="Script" path="res://scripts/gameplay/enemies/EnemyHitbox.gd" id="5"]
+[ext_resource type="PackedScene" path="res://scenes/ui/EnemyHealthBar.tscn" id="6"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_body"]
+size = Vector2(28, 28)
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_hitbox"]
+radius = 28.0
+
+[node name="EnemyActor" type="CharacterBody2D" groups=["enemy"]]
+collision_layer = 32
+collision_mask = 1
+script = ExtResource("1")
+enemy_data = ExtResource("4")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_body")
+
+[node name="Sprite2D" type="AnimatedSprite2D" parent="."]
+
+[node name="HealthComponent" type="Node" parent="."]
+script = ExtResource("2")
+
+[node name="StateMachine" type="Node" parent="."]
+script = ExtResource("3")
+
+[node name="Hitbox" type="Area2D" parent="."]
+collision_layer = 128
+collision_mask = 2
+script = ExtResource("5")
+
+[node name="HitboxShape" type="CollisionShape2D" parent="Hitbox"]
+shape = SubResource("CircleShape2D_hitbox")
+
+[node name="EnemyHealthBar" parent="." instance=ExtResource("6")]
+position = Vector2(-20, -70)

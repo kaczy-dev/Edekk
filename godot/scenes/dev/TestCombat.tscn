@@ -1,0 +1,49 @@
+[gd_scene load_steps=9 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/player/Player.tscn" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/EnemyActor.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://scenes/ui/HUD.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://scenes/economy/VendingMachine.tscn" id="4"]
+[ext_resource type="PackedScene" path="res://scenes/transit/TransitStation.tscn" id="5"]
+[ext_resource type="Script" path="res://scripts/core/transit/TransitDestination.gd" id="6"]
+[ext_resource type="Resource" path="res://data/transit/to_level2.tres" id="7"]
+[ext_resource type="PackedScene" path="res://scenes/ambient/AmbientPedestrian.tscn" id="8"]
+[ext_resource type="PackedScene" path="res://scenes/ambient/AmbientVehiclePath.tscn" id="9"]
+
+[node name="TestCombat" type="Node2D"]
+
+[node name="Ground" type="ColorRect" parent="."]
+offset_left = -400.0
+offset_top = -300.0
+offset_right = 400.0
+offset_bottom = 300.0
+color = Color(0.286, 0.443, 0.286, 1)
+
+[node name="Player" parent="." instance=ExtResource("1")]
+position = Vector2(0, 0)
+
+[node name="EnemyActor" parent="." instance=ExtResource("2")]
+position = Vector2(150, 0)
+
+[node name="EnemyActor2" parent="." instance=ExtResource("2")]
+position = Vector2(-150, 100)
+
+[node name="VendingMachine" parent="." instance=ExtResource("4")]
+position = Vector2(0, -200)
+
+[node name="TransitStation" parent="." instance=ExtResource("5")]
+position = Vector2(250, -200)
+station_id = &"test_hub"
+display_name = "Przystanek testowy"
+destinations = Array[ExtResource("6")]([ExtResource("7")])
+
+[node name="Pedestrian1" parent="." instance=ExtResource("8")]
+position = Vector2(-250, -250)
+
+[node name="Pedestrian2" parent="." instance=ExtResource("8")]
+position = Vector2(300, 250)
+
+[node name="VehiclePath" parent="." instance=ExtResource("9")]
+position = Vector2(0, 400)
+
+[node name="HUD" parent="." instance=ExtResource("3")]

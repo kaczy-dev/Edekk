@@ -1,0 +1,110 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/presentation/menu/MainMenu.gd" id="1"]
+[ext_resource type="Theme" path="res://ui/theme/menu_theme.tres" id="2"]
+[ext_resource type="PackedScene" path="res://scenes/ambient/AmbientPedestrian.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://scenes/ambient/AmbientVehiclePath.tscn" id="4"]
+[ext_resource type="PackedScene" path="res://scenes/ui/DayNightOverlay.tscn" id="5"]
+[ext_resource type="Texture2D" path="res://assets/assety/brackeys_vfx_bundle/particles/alpha/smoke_01_a.png" id="6"]
+
+[node name="MainMenu" type="Control"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme = ExtResource("2")
+script = ExtResource("1")
+
+[node name="Background" type="ColorRect" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.098, 0.114, 0.137, 1)
+
+[node name="Ground" type="ColorRect" parent="."]
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -120.0
+color = Color(0.06, 0.07, 0.09, 1)
+
+[node name="AmbientLayer" type="Node2D" parent="."]
+
+[node name="Pedestrian1" parent="AmbientLayer" instance=ExtResource("3")]
+position = Vector2(180, 560)
+wander_radius = 70.0
+
+[node name="Pedestrian2" parent="AmbientLayer" instance=ExtResource("3")]
+position = Vector2(1080, 580)
+wander_radius = 70.0
+
+[node name="VehiclePath" parent="AmbientLayer" instance=ExtResource("4")]
+position = Vector2(640, 630)
+
+[node name="DustParticles" type="CPUParticles2D" parent="AmbientLayer"]
+position = Vector2(640, 400)
+emitting = true
+amount = 12
+lifetime = 8.0
+preprocess = 4.0
+speed_scale = 0.5
+texture = ExtResource("6")
+emission_shape = 1
+emission_rect_extents = Vector2(700, 400)
+direction = Vector2(1, 0)
+spread = 15.0
+gravity = Vector2(0, -2)
+initial_velocity_min = 8.0
+initial_velocity_max = 18.0
+scale_amount_min = 1.5
+scale_amount_max = 3.0
+color = Color(0.6, 0.68, 0.72, 0.12)
+
+[node name="DayNightOverlay" parent="." instance=ExtResource("5")]
+
+[node name="Panel" type="PanelContainer" parent="."]
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -180.0
+offset_top = -220.0
+offset_right = 180.0
+offset_bottom = 220.0
+
+[node name="VBox" type="VBoxContainer" parent="Panel"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="Title" type="Label" parent="Panel/VBox"]
+layout_mode = 2
+theme_type_variation = &"HeaderLarge"
+horizontal_alignment = 1
+text = "EDEK"
+
+[node name="Subtitle" type="Label" parent="Panel/VBox"]
+layout_mode = 2
+theme_type_variation = &"Caption"
+horizontal_alignment = 1
+text = "kot w mieście"
+
+[node name="Spacer" type="Control" parent="Panel/VBox"]
+custom_minimum_size = Vector2(0, 8)
+layout_mode = 2
+
+[node name="ContinueButton" type="Button" parent="Panel/VBox"]
+layout_mode = 2
+text = "Kontynuuj"
+
+[node name="NewGameButton" type="Button" parent="Panel/VBox"]
+layout_mode = 2
+text = "Nowa gra"
+
+[node name="LevelsButton" type="Button" parent="Panel/VBox"]
+layout_mode = 2
+text = "Poziomy"
+
+[node name="SettingsButton" type="Button" parent="Panel/VBox"]
+layout_mode = 2
+text = "Ustawienia"
+
+[node name="QuitButton" type="Button" parent="Panel/VBox"]
+layout_mode = 2
+text = "Wyjdź"

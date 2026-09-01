@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://1enylmx0lqsa"
+path="res://.godot/imported/solar-panel-landscape-group.obj-3e827eaa8bae0f0e7e41e3641ac09dde.mesh"
+
+[deps]
+
+files=["res://.godot/imported/solar-panel-landscape-group.obj-3e827eaa8bae0f0e7e41e3641ac09dde.mesh"]
+
+source_file="res://assets/assety/kenney_city-kit-industrial_2.0/Models/OBJ format/solar-panel-landscape-group.obj"
+dest_files=["res://.godot/imported/solar-panel-landscape-group.obj-3e827eaa8bae0f0e7e41e3641ac09dde.mesh", "res://.godot/imported/solar-panel-landscape-group.obj-3e827eaa8bae0f0e7e41e3641ac09dde.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

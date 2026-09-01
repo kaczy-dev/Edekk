@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://da10l4icjp6j4"
+path="res://.godot/imported/building-sample-tower-a.obj-9738fdf5fb111e137c7f4a33fbc0a1bb.mesh"
+
+[deps]
+
+files=["res://.godot/imported/building-sample-tower-a.obj-9738fdf5fb111e137c7f4a33fbc0a1bb.mesh"]
+
+source_file="res://assets/assety/kenney_modular-buildings/Models/OBJ format/building-sample-tower-a.obj"
+dest_files=["res://.godot/imported/building-sample-tower-a.obj-9738fdf5fb111e137c7f4a33fbc0a1bb.mesh", "res://.godot/imported/building-sample-tower-a.obj-9738fdf5fb111e137c7f4a33fbc0a1bb.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

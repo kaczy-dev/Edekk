@@ -1,0 +1,25 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/gameplay/ambient/AmbientVehicle.gd" id="1"]
+
+[sub_resource type="Curve2D" id="Curve2D_loop"]
+closed = true
+_data = {
+"points": PackedVector2Array(0, 0, 0, 0, -150, -100, 0, 0, 0, 0, 150, -100, 0, 0, 0, 0, 150, 100, 0, 0, 0, 0, -150, 100)
+}
+
+[node name="AmbientVehiclePath" type="Path2D"]
+curve = SubResource("Curve2D_loop")
+
+[node name="AmbientVehicle" type="PathFollow2D" parent="."]
+rotates = false
+script = ExtResource("1")
+
+[node name="IconLabel" type="Label" parent="AmbientVehicle"]
+offset_left = -18.0
+offset_top = -18.0
+offset_right = 18.0
+offset_bottom = 18.0
+theme_override_font_sizes/font_size = 32
+horizontal_alignment = 1
+vertical_alignment = 1

@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://cwjqwcomc0dup"
+path="res://.godot/imported/building-window-balcony.obj-76c25ecf9315e42f54fd82a3c469c63b.mesh"
+
+[deps]
+
+files=["res://.godot/imported/building-window-balcony.obj-76c25ecf9315e42f54fd82a3c469c63b.mesh"]
+
+source_file="res://assets/assety/kenney_modular-buildings/Models/OBJ format/building-window-balcony.obj"
+dest_files=["res://.godot/imported/building-window-balcony.obj-76c25ecf9315e42f54fd82a3c469c63b.mesh", "res://.godot/imported/building-window-balcony.obj-76c25ecf9315e42f54fd82a3c469c63b.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false
