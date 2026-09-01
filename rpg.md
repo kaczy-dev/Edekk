@@ -1756,3 +1756,31 @@ ponownie (218/218 PASS przed tą rundą, bez zmian kodu) zamiast reimplementowan
   transakcji dostał ekran później, w osobnej rundzie — sekcja 16 — gdy backlog był już
   gotowy pod UI; umiejętności czekają na tę samą decyzję).
 - **Bez wizualnej weryfikacji** — jak reszta tej sesji.
+
+## 21. Tryb "szybkiego dnia" (RestSpot) — ZROBIONE (2026-09-02)
+
+Kolejna pozycja z otwartego backlogu sekcji 11b ("Tryb 'szybkiego dnia' — przyspieszenie
+czasu w bezpiecznym miejscu zamiast biernego czekania"). Zbudowana na dwóch już
+istniejących mechanizmach zamiast nowego systemu skoku czasu: `TimeManager.
+advance_minutes()` (dotąd używane tylko przez `TransitStation` do fast-travel) i
+`EventBus.energy_restore_requested` (dotąd tylko `VendingMachine`).
+
+- **`scripts/gameplay/world/RestSpot.gd`** (nowy, `class_name RestSpot`) +
+  `scenes/interactables/RestSpot.tscn` — placeable interactable (ławka/kryjówka),
+  duck-typed `interact(player)` jak `VendingMachine`/`ShortcutGate`. Skacze zegar o
+  `hours_to_advance` (domyślnie 4h) i w pełni odnawia energię
+  (`Difficulty.MAX_ENERGY`). Świadomie **bez cooldownu/limitu dziennego** — zegar
+  porusza się tylko w jedną stronę, więc nie ma sposobu na nadużycie poza pomijaniem
+  czasu, który gracz i tak spędziłby bezczynnie ("prosty system" z treści backlogu).
+  Duck-typed `get_favorite_label()` (jak `VendingMachine`) — od razu favoritable.
+- **Testy**: `tests/world/test_rest_spot.gd` (5 — zegar przesuwa się o właściwą liczbę
+  godzin, żąda pełnego odnowienia energii, emituje toast, można użyć wielokrotnie pod
+  rząd, stabilna etykieta ulubionego).
+- **Walidacja**: `gdscript-toolkit:gdscript-format --verify-structure`, headless
+  cache-refresh (nowy `class_name RestSpot`), pełny pakiet — **223/223 PASS, 397
+  asercji** (poprzednio 218/218 — 5 nowych testów dokładnie zgadza się z liczbą
+  dodanych). Boot-check czysty.
+- **Nie wpięte jeszcze** w żaden poziom — `RestSpot.tscn` gotowa do ręcznego
+  postawienia w scenie, ten sam status co pozostałe gotowe-ale-niepodłączone
+  komponenty tej sesji.
+- **Bez wizualnej weryfikacji** — jak reszta tej sesji.
