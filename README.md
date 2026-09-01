@@ -2,7 +2,7 @@
 
 # Przygody Edka
 
-**Współczesna, dwuwymiarowa gra RPG/przygodowa we Wrocławiu.**
+**Współczesna, dwuwymiarowa gra RPG/przygodowa w Szczecinie.**
 
 Eksploracja miasta, questy fabularne, dialogi z NPC i walka w czasie rzeczywistym.
 
@@ -14,8 +14,8 @@ Eksploracja miasta, questy fabularne, dialogi z NPC i walka w czasie rzeczywisty
 
 ## O grze
 
-Akcja toczy się we współczesnym Wrocławiu (Wały Chrobrego, Rynek, Łucznicza 43 i okolice).
-Gracz eksploruje miasto, wykonuje questy fabularne, rozmawia z NPC, korzysta z prostej
+Akcja toczy się we współczesnym Szczecinie (Wały Chrobrego, Zamek Książąt Pomorskich,
+Łasztownia i okolice). Gracz eksploruje miasto, wykonuje questy fabularne, rozmawia z NPC, korzysta z prostej
 ekonomii (automaty, dziennik transakcji, ulubione miejsca) i walczy w czasie rzeczywistym
 z kilkoma typami wrogów (bandyci, thugi, demony, „blood monster"). Reputacja gracza wpływa
 na reakcje policji. Cykl dnia/nocy i pogoda (deszcz/mgła/czyste niebo) działają niezależnie

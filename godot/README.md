@@ -9,9 +9,9 @@ sprawdzaj `rpg.md` jako pierwszy.
 
 ## O grze
 
-Współczesna, dwuwymiarowa gra RPG/przygodowa osadzona we Wrocławiu (Wały Chrobrego, Rynek,
-Łucznicza 43 i okolice) — eksploracja miasta, questy fabularne, dialogi z NPC, prosty
-system ekonomii/reputacji oraz walka w czasie rzeczywistym z kilkoma typami wrogów
+Współczesna, dwuwymiarowa gra RPG/przygodowa osadzona w Szczecinie (Wały Chrobrego, Zamek
+Książąt Pomorskich, Łasztownia i okolice) — eksploracja miasta, questy fabularne, dialogi
+z NPC, prosty system ekonomii/reputacji oraz walka w czasie rzeczywistym z kilkoma typami wrogów
 (bandyci, thugi, demony, "blood monster"). Gra jest **formalnie jednojęzyczna, polska**
 (cała warstwa tekstowa gracza).
 
