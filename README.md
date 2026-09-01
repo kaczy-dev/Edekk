@@ -2,11 +2,11 @@
 
 # Przygody Edka
 
-**Przygodowa gra eksploracyjna 2D o Edku — dymnym srebrnym Maine coonie.**
+**Współczesna, dwuwymiarowa gra RPG/przygodowa we Wrocławiu.**
 
-Cztery ręcznie malowane światy. Jeden puchaty bohater.
+Eksploracja miasta, questy fabularne, dialogi z NPC i walka w czasie rzeczywistym.
 
-`React 19` · `TanStack Start` · `TypeScript` · `Canvas 2D` · `Tailwind v4` · `Zustand`
+`Godot 4.7` · `GDScript`
 
 </div>
 
@@ -14,88 +14,76 @@ Cztery ręcznie malowane światy. Jeden puchaty bohater.
 
 ## O grze
 
-Edek budzi się w salonie, gdy pachnie chrupkami i drewnem kominka. Stamtąd prowadzi go droga przez ogród pełen pszczół, zakurzony strych i wreszcie na dach — pod gwiazdy, do przyjaciela.
-
-Każdy świat ma własną listę zadań: coś znaleźć, z kimś porozmawiać, gdzieś dotrzeć. Ukończenie świata otwiera następny.
-
-| Poziom | Świat | Zadania |
-|---|---|---|
-| 1 | **Salon** — poranna pobudka | Znajdź miskę i piłeczkę, wyjdź drzwiami |
-| 2 | **Ogród** — słońce i pszczoły | Złap 3 myszki, pogadaj z wiewiórką, dojdź do bramy |
-| 3 | **Strych** — kurz i tajemnice | Znajdź klucz, otwórz starą skrzynię |
-| 4 | **Dach nocą** — pod gwiazdami | Zbierz 5 spadających gwiazd, spotkaj przyjaciela |
+Akcja toczy się we współczesnym Wrocławiu (Wały Chrobrego, Rynek, Łucznicza 43 i okolice).
+Gracz eksploruje miasto, wykonuje questy fabularne, rozmawia z NPC, korzysta z prostej
+ekonomii (automaty, dziennik transakcji, ulubione miejsca) i walczy w czasie rzeczywistym
+z kilkoma typami wrogów (bandyci, thugi, demony, „blood monster"). Reputacja gracza wpływa
+na reakcje policji. Cykl dnia/nocy i pogoda (deszcz/mgła/czyste niebo) działają niezależnie
+od siebie. Gra jest formalnie jednojęzyczna — cała warstwa tekstowa po polsku.
 
 ### Sterowanie
 
 | | |
 |---|---|
 | **Ruch** | `WSAD` lub strzałki |
-| **Bieg** | `Shift` (przytrzymanie lub przełącznik — do wyboru w ustawieniach) |
-| **Interakcja** | `E`, `Spacja` lub `Enter` |
-| **Dotyk** | Analogowy joystick albo D-pad, plus przyciski biegu i interakcji |
+| **Atak** | przypisywalny klawisz (domyślne bindowanie w Ustawieniach) |
+| **Interakcja** | `E` |
+| **Ulubione** | `F` |
+| **Szybki zapis** | `F5` |
 
-Bieg zużywa energię, odpoczynek ją odnawia — a pszczoły potrafią ją zabrać.
+Sterowanie jest w pełni rebindowalne z menu Ustawień. Dostępne jest też sterowanie mobilne
+(wirtualny joystick + przyciski).
 
 ---
 
 ## Uruchomienie
 
+Projekt otwiera się jako standardowy projekt **Godot 4.7** (renderer GL Compatibility,
+viewport 1280×720) — wystarczy wskazać folder [`godot/`](./godot) w edytorze Godota.
+
+### Testy
+
+Pakiet testów **GUT** (`godot/addons/gut/`), uruchamiany headless:
+
 ```bash
-npm install
-npm run dev
+GODOT_BIN="/path/to/Godot_v4.7.2-stable_win64.exe" scripts/run_godot_tests.sh          # pełny pakiet
+GODOT_BIN="/path/to/Godot_v4.7.2-stable_win64.exe" scripts/run_godot_tests.sh res://tests/unit/test_weather_overlay.gd  # jeden plik
 ```
 
-Gra wystartuje na `http://localhost:8080` (albo kolejnym wolnym porcie).
-
-### Skrypty
-
-| Polecenie | Działanie |
-|---|---|
-| `npm run dev` | Serwer deweloperski |
-| `npm run build` | Build produkcyjny (Vite → Nitro, cel: Cloudflare) |
-| `npm run typecheck` | Sprawdzenie typów (`tsc --noEmit`) |
-| `npm run lint` | ESLint |
-| `npm run format` | Prettier |
-
-> `npm run preview` nie zadziała — build produkuje bundle Nitro/Cloudflare, którego `vite preview` nie obsłuży. Do weryfikacji używaj `npm run dev`.
-
----
-
-## Dostępność
-
-Gra została zaprojektowana tak, by dało się w nią grać na różne sposoby:
-
-- **Tryb dla daltonistów** — dystans do celu kodowany jest nie tylko kolorem, ale też kształtem znacznika, wzorem obrysu i osobnym symbolem
-- **Ograniczona animacja** — wyłącza wstrząsy ekranu, cząsteczki otoczenia i efekty 3D w interfejsie, zachowując informację zwrotną o zdarzeniach
-- **Wskaźniki celu** — obrotowe strzałki na ekranie, tekstowy dystans w HUD oraz dźwiękowe sygnały zbliżania, każde do włączenia osobno
-- **Kalibracja czułości** — próg „tuż obok" regulowany suwakiem, bo każdy inaczej odbiera odległość
-- **Poziomy trudności** — łatwy, średni i trudny różnią się zapasem energii, tempem jej zużycia i siłą użądleń
-
-Wszystko w **Ustawieniach**.
+(PowerShell: `scripts/run_godot_tests.ps1`, ten sam kontrakt.) Brak CI (solo dev) — pakiet
+uruchamiany ręcznie przed uznaniem rundy pracy za skończoną.
 
 ---
 
 ## Jak to jest zbudowane
 
-Gra renderuje się do jednego `<canvas>` napędzanego własnym silnikiem; cała reszta — HUD, menu, dialogi — to React.
+- **9 autoloadów** (`project.godot`, sekcja `[autoload]`) — `ProgressStore` (zapis/wczytanie
+  `user://progress.json`), `AudioService`, `SettingsStore` (rebindowalne klawisze),
+  `EventBus` (sygnałowy bus międzysystemowy, używany oszczędnie), `DebugConsole`,
+  `SceneRouter` (fade przejść), `VfxSpawner`, `TimeManager` (cykl dnia/nocy),
+  `GraffitiSpawner`.
+- **Gracz**: ruch/sprint, atak (`PlayerAttack`/`PlayerHitbox`), state machine, interakcje
+  z otoczeniem, rebindowalne sterowanie, szybki zapis.
+- **Wrogowie**: `EnemyActor`/`EnemyHitbox` z własną state machine, dane per-typ jako
+  `Resource` (`data/enemies/*.tres`), paski HP.
+- **Miasto**: piesi z losowymi plotkami, pojazdy, pogoda, losowe wydarzenia uliczne,
+  reakcje policji na reputację, ekonomia, tranzyt.
+- **UI**: menu główne, ustawienia (w tym rebindowanie klawiszy), dziennik transakcji,
+  ulubione miejsca, HUD (questy, ekwipunek, toasty), sterowanie mobilne.
 
 ```
-src/
-├─ game/          Silnik i logika domenowa (bez Reacta)
-│  ├─ engine.ts       Pętla gry, fizyka, kolizje, kamera, renderowanie
-│  ├─ particles.ts    Cząsteczki na puli obiektów — bez alokacji w pętli
-│  ├─ levels.ts       Cztery poziomy jako dane statyczne
-│  └─ …               Zadania, ekwipunek, bliskość celu, język wizualny
-├─ components/
-│  ├─ game/           Canvas, HUD, dialogi, wskaźniki, sterowanie dotykowe
-│  └─ ui/             shadcn/ui + własne efekty 3D
-├─ routes/         Routing plikowy (TanStack Start)
-└─ store/          Zustand z zapisem stanu do localStorage
+godot/
+├─ scripts/       Logika gry (autoloady, gameplay, infrastruktura, UI)
+├─ scenes/        Sceny .tscn (poziomy, interaktywne obiekty, menu)
+├─ data/          Zasoby danych (.tres) — wrogowie, przedmioty
+├─ tests/         Pakiet testów GUT
+└─ assets/        Grafiki, fonty, audio
 ```
 
-Silnik nigdy nie importuje Reacta ani nie sięga do store'a — komunikuje się przez obiekt zdarzeń, który `GameCanvas` mapuje na akcje Zustanda. Ten podział jest celowy i warto go pilnować.
-
-**Chcesz zajrzeć głębiej?** [AGENTS.md](./AGENTS.md) opisuje architekturę, konwencje i pułapki, które w tym kodzie realnie wybuchły.
+**Chcesz zajrzeć głębiej?** [`godot/README.md`](./godot/README.md) opisuje architekturę
+projektu Godot; [`rpg.md`](./rpg.md) jest kanonicznym, datowanym logiem każdej rundy pracy —
+najbardziej aktualne źródło prawdy o stanie projektu; [AGENTS.md](./AGENTS.md) opisuje
+konwencje i pułapki dla agentów pracujących w tym repo.
 
 ---
 
@@ -103,6 +91,11 @@ Silnik nigdy nie importuje Reacta ani nie sięga do store'a — komunikuje się 
 
 | Plik | Dla kogo |
 |---|---|
-| [AGENTS.md](./AGENTS.md) | Architektura, polecenia, konwencje, pułapki — kanoniczne źródło |
+| [rpg.md](./rpg.md) | Kanoniczny, datowany log postępu — sprawdzaj jako pierwsze |
+| [godot/README.md](./godot/README.md) | Architektura i testy projektu Godot |
+| [AGENTS.md](./AGENTS.md) | Konwencje i pułapki dla agentów |
 | [CLAUDE.md](./CLAUDE.md) | Punkt wejścia dla Claude Code |
 | [SKILLS.md](./SKILLS.md) | Zainstalowane skille agentowe i zarządzanie nimi |
+
+> Historyczna wersja przeglądarkowa (React + Canvas2D/Phaser) została zastąpiona migracją
+> do Godota — zobacz `rpg.md` po szczegóły procesu migracji.
