@@ -29,6 +29,7 @@ SceneRouter="*res://scripts/infrastructure/SceneRouter.gd"
 VfxSpawner="*res://scripts/infrastructure/VfxSpawner.gd"
 TimeManager="*res://scripts/infrastructure/TimeManager.gd"
 GraffitiSpawner="*res://scripts/infrastructure/GraffitiSpawner.gd"
+MCPGameBridge="res://addons/godot_mcp/game_bridge/mcp_game_bridge.gd"
 
 [debug]
 
@@ -44,6 +45,13 @@ window/stretch/mode="canvas_items"
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/godot_mcp/plugin.cfg", "res://addons/gut/plugin.cfg")
+
+[godot_mcp]
+
+bind_mode=0
+custom_bind_ip=""
+port_override_enabled=false
+port_override=6550
 
 [gui]
 
