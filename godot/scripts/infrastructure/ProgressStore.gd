@@ -187,6 +187,58 @@ func purchase_skill(skill_id: String) -> bool:
 	return true
 
 
+## rpg.md backlog ("Tryb nocny/patrol — cel: przetrwać/dotrzeć gdzieś tylko
+## nocą") — `patrol_id` is the placed NightPatrolChallenge's own export,
+## same author-assigned-stable-string convention as `gate_id`/`skill_id`
+## above. Completing the same patrol on a later night doesn't re-grant the
+## reward — a one-time "have you ever done this" flag, same permanent-
+## progress shape as `unlocked_shortcuts`.
+var completed_night_patrols: Array[String] = []
+
+
+func is_night_patrol_completed(patrol_id: String) -> bool:
+	return completed_night_patrols.has(patrol_id)
+
+
+func complete_night_patrol(patrol_id: String) -> void:
+	if completed_night_patrols.has(patrol_id):
+		return
+	completed_night_patrols.append(patrol_id)
+	save_progress()
+
+
+## rpg.md backlog ("Tryb 'dostawa' — proste zadania kurierskie między
+## punktami miasta") — `job_id` identifies a pickup/dropoff pair the same
+## way `gate_id`/`patrol_id` identify their own placed node. Persisted (not
+## session-only) so picking up a parcel, then leaving the level and coming
+## back later, still has it in the player's pocket — couriers between
+## points of the city implies the two points don't have to be in the same
+## level visit.
+var carrying_parcels: Array[String] = []
+
+
+func is_carrying_parcel(job_id: String) -> bool:
+	return carrying_parcels.has(job_id)
+
+
+func pickup_parcel(job_id: String) -> void:
+	if carrying_parcels.has(job_id):
+		return
+	carrying_parcels.append(job_id)
+	save_progress()
+
+
+## Returns false (and pays nothing) if the player isn't carrying this job's
+## parcel — same fail-silently-return-false contract as spend_money()/
+## purchase_skill() above.
+func deliver_parcel(job_id: String) -> bool:
+	if not carrying_parcels.has(job_id):
+		return false
+	carrying_parcels.erase(job_id)
+	save_progress()
+	return true
+
+
 func has_completed_quest(level_id: String, quest_id: String) -> bool:
 	for entry in quest_completion_history:
 		if entry.level_id == level_id and entry.quest_id == quest_id:
@@ -444,6 +496,8 @@ func save_progress() -> void:
 			"favorite_places": favorite_places,
 			"unlocked_shortcuts": unlocked_shortcuts,
 			"purchased_skills": purchased_skills,
+			"completed_night_patrols": completed_night_patrols,
+			"carrying_parcels": carrying_parcels,
 			"resume_level_id": resume_level_id,
 			"resume_pos_x": resume_pos_x,
 			"resume_pos_y": resume_pos_y,
@@ -511,6 +565,14 @@ func load_progress() -> void:
 	for id in parsed.get("purchased_skills", []):
 		loaded_skills.append(str(id))
 	purchased_skills = loaded_skills
+	var loaded_patrols: Array[String] = []
+	for id in parsed.get("completed_night_patrols", []):
+		loaded_patrols.append(str(id))
+	completed_night_patrols = loaded_patrols
+	var loaded_parcels: Array[String] = []
+	for id in parsed.get("carrying_parcels", []):
+		loaded_parcels.append(str(id))
+	carrying_parcels = loaded_parcels
 	resume_level_id = parsed.get("resume_level_id", "")
 	resume_pos_x = parsed.get("resume_pos_x", 0.0)
 	resume_pos_y = parsed.get("resume_pos_y", 0.0)
@@ -535,6 +597,8 @@ func reset_progress() -> void:
 	favorite_places = []
 	unlocked_shortcuts = []
 	purchased_skills = []
+	completed_night_patrols = []
+	carrying_parcels = []
 	resume_level_id = ""
 	resume_pos_x = 0.0
 	resume_pos_y = 0.0

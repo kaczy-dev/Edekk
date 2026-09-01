@@ -1851,3 +1851,63 @@ dołożenie ekranu.
 - **Bez wizualnej weryfikacji** — jak reszta tej sesji; czy panel mieści się bez
   przycinania na wszystkich rozdzielczościach nieprzetestowane (ten sam standing gap co
   sekcja 16 już notowała dla `SettingsMenu`).
+
+## 24. Dwa nowe tryby gry: nocny/patrol + "dostawa" — ZROBIONE (2026-09-02)
+
+Ostatnie dwie duże pozycje z backlogu sekcji 11 ("Nowe tryby gry"). W przeciwieństwie do
+reszty tej sesji (dodatki do istniejących systemów) — to nowe mechaniki, więc
+zaprojektowane z użytkownikiem przed implementacją, nie zgadywane samodzielnie.
+
+### 24a. Tryb nocny/patrol
+
+Sprawdzone przed projektowaniem: w tym repo **nie ma żadnego systemu śmierci/game-over
+gracza** — `HealthComponent.died` na graczu tylko przekazuje `EventBus.player_damaged` do
+HUD-u, nic więcej tego nie konsumuje. Realny warunek porażki ("zgiń w nocy i przegraj
+patrol") wymagałby najpierw zbudowania tego systemu, więc świadomie **tylko nagroda, bez
+twardej porażki** — połączenie z `StreetAmbushSpawner` (sekcja 22, ta sama brama
+`TimeManager.is_night()`) samo w sobie czyni noc realnym zagrożeniem.
+
+- **`scripts/gameplay/world/NightPatrolChallenge.gd`** (nowy, `class_name
+  NightPatrolChallenge`) — standalone `Node` (jak `StreetEventSpawner`/
+  `PoliceReactionSystem`), słucha `TimeManager.hour_changed`, przy przejściu
+  noc→dzień (`_was_night` flaga) wypłaca nagrodę raz na zawsze (pieniądze +
+  opcjonalnie reputacja w `reputation_zone_id`). Bez własnej sceny `.tscn` — ten sam
+  status co `StreetEventSpawner`/`PoliceReactionSystem`, dokładany bezpośrednio jako
+  `Node` w drzewie poziomu.
+- **`ProgressStore.completed_night_patrols: Array[String]`** — trwałe, jednorazowe per
+  `patrol_id` (ten sam wzorzec co `unlocked_shortcuts`).
+- **Testy**: `tests/world/test_night_patrol_challenge.gd` (5 — brak wypłaty w trakcie
+  nocy, wypłata przy przejściu na dzień, poprawna kwota + reputacja, brak podwójnej
+  wypłaty przez dwie kolejne noce, brak wypłaty gdy nigdy nie zaczęto w nocy).
+
+### 24b. Tryb "dostawa"
+
+Sprawdzone przed projektowaniem: `QuestStepData.kind` ("collect"/"talk"/"reach") to
+treść autorska per-poziom (`.tres`), a sens kuriera to dwa punkty, które **nie muszą być
+na tym samym poziomie** — więc świadomie NIE zbudowane na `QuestStepData`/`GoalArea`/
+`LevelBuilder`, tylko jako samodzielna para placeable interactable'i, ten sam wzorzec co
+`ShortcutGate`/`VendingMachine`.
+
+- **`scripts/gameplay/world/DeliveryPickup.gd`** + **`DeliveryDropoff.gd`** (nowe,
+  `class_name`) + odpowiadające `.tscn` — sparowane przez wspólne `job_id`
+  (author-assigned, jak `ShortcutGate.gate_id`). Odbiór ustawia flagę "niosę", dostawa
+  sprawdza flagę, wypłaca `reward_money`, czyści flagę. Stan trwały w `ProgressStore`
+  (nie sesyjny) — gracz może odebrać przesyłkę, wyjść z poziomu i dostarczyć później,
+  nawet na innym poziomie.
+- **`ProgressStore.carrying_parcels: Array[String]`** + `is_carrying_parcel()`/
+  `pickup_parcel()`/`deliver_parcel()` (ten ostatni zwraca `false` bez wypłaty, jeśli
+  gracz nie niesie danej przesyłki — ten sam kontrakt co `spend_money()`).
+- **Testy**: `tests/world/test_delivery_job.gd` (5 — dostawa bez odbioru nic nie robi,
+  odbiór+dostawa wypłaca nagrodę, podwójny odbiór bez duplikatu, podwójna dostawa
+  płaci tylko raz, różne `job_id` się nie mieszają).
+
+### 24c. Walidacja (obie funkcje razem)
+
+`gdscript-toolkit:gdscript-format --verify-structure` na wszystkich nowych/zmienionych
+plikach, headless cache-refresh (3 nowe `class_name`), pełny pakiet — **241/241 PASS,
+425 asercji** (poprzednio 231/231 — 10 nowych testów dokładnie zgadza się z liczbą
+dodanych). Boot-check czysty.
+
+**Nie wpięte jeszcze** w żaden poziom — oba komponenty gotowe do ręcznego postawienia w
+scenie, ten sam status co reszta gotowych-ale-niepodłączonych komponentów tej sesji.
+**Bez wizualnej weryfikacji.**
