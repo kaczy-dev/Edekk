@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="MapPointData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/MapPointData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "podziemne_trasy"
+point_name = "Podziemne Trasy Szczecina"
+category = "history"
+map_position = Vector2(340, 260)
+description = "Największy cywilny schron w Polsce zlokalizowany pod Dworcem Głównym, oferujący ścieżki historyczne z czasów II Wojny Światowej i Zimnej Wojny."
+icon = "⛏️"

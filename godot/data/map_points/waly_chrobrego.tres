@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="MapPointData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/MapPointData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "waly_chrobrego"
+point_name = "Wały Chrobrego"
+category = "waterfront"
+map_position = Vector2(420, 460)
+description = "Tarasy widokowe o długości około 500 metrów, oferujące monumentalną architekturę oraz malowniczą panoramę na Odrę i port."
+icon = "🌉"

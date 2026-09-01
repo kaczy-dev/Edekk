@@ -2085,3 +2085,27 @@ narzędzia do ich wyszukania).
 Każdy krok: GUT (`tests/ui/test_city_map_menu.gd` w stylu `test_stats_menu.gd`),
 format→cache-refresh→test, osobny wpis w `rpg.md` po ZROBIENIU (ta sekcja zostaje
 planem, nie logiem rundy — patrz nagłówek).
+
+### Krok 1 — dane — ZROBIONE (2026-09-02)
+
+- **`scripts/core/MapPointData.gd`** (nowy, `class_name MapPointData`, `extends
+  Resource`) — pola `id`/`point_name`/`category`/`map_position: Vector2`/`description`/
+  `icon` (emoji, nie `Texture2D` — house style tego projektu).
+- **`scripts/core/MapPointRegistry.gd`** (nowy, `load_all()`) — ten sam wzorzec co
+  `ItemRegistry`/`EnemyRegistry`, jawna lista ścieżek.
+- **`data/map_points/*.tres`** (7 plików) — realna treść z wiadomości użytkownika:
+  `waly_chrobrego`/`dzwigozaury`/`bulwary_szczecinskie` (category `waterfront`),
+  `zamek_ksiazat_pomorskich`/`podziemne_trasy`/`park_kasprowicza`/`ogrod_rozany`
+  (category `history`). `map_position` to na razie placeholder-owe współrzędne canvasu
+  (bez realnej grafiki mapy do naniesienia na nią — krok 2 dopiero buduje ekran), nie
+  prawdziwe współrzędne geograficzne.
+- **Testy**: `tests/world/test_map_point_registry.gd` (3 — wszystkie 7 POI się ładuje,
+  każdy ma kompletne dane i poprawną kategorię, liczba `waterfront`/`history` zgadza się
+  3/4 jak w treści użytkownika).
+- **Walidacja**: `gdscript-toolkit:gdscript-format --verify-structure`, headless
+  cache-refresh (2 nowe `class_name`), pełny pakiet — **252/252 PASS, 475 asercji**
+  (poprzednio 249/249 — 3 nowe testy zgadzają się z liczbą dodanych; różnica 249→252 w
+  testach to +3, nie +7, bo pozostałe 4 pliki `.tres` to dane, nie testy same w sobie).
+  Boot-check czysty.
+- **Następny krok**: krok 2 (ekran `CityMap.tscn`/`CityMapMenu.gd`) — nie zaczęty w tej
+  rundzie, osobna decyzja/runda.

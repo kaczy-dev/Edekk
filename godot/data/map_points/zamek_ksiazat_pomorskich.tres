@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="MapPointData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/MapPointData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "zamek_ksiazat_pomorskich"
+point_name = "Zamek Książąt Pomorskich"
+category = "history"
+map_position = Vector2(300, 320)
+description = "Dawna siedziba władców Pomorza, zachwycająca renesansowym dziedzińcem i astronomicznym zegarem."
+icon = "🏰"

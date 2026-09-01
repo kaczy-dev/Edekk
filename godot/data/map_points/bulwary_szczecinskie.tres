@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="MapPointData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/MapPointData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "bulwary_szczecinskie"
+point_name = "Bulwary Szczecińskie"
+category = "waterfront"
+map_position = Vector2(380, 500)
+description = "Odnowione, tętniące życiem nabrzeże, idealne na wieczorny spacer z dostępem do licznych restauracji i kawiarni."
+icon = "🌆"

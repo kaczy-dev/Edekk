@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="MapPointData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/MapPointData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "ogrod_rozany"
+point_name = "Ogród Różany (Różanka)"
+category = "history"
+map_position = Vector2(150, 340)
+description = "Przepiękny ogród botaniczny założony w 1928 roku, w którym można podziwiać tysiące pachnących krzewów róż."
+icon = "🌹"

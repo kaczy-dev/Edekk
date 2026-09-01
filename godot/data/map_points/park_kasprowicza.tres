@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="MapPointData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/MapPointData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "park_kasprowicza"
+point_name = "Park im. Jana Kasprowicza"
+category = "history"
+map_position = Vector2(180, 200)
+description = "Największy park miejski z Jeziorem Rusałka, słynnymi platanami oraz monumentalnym Pomnikiem Czynu Polaków."
+icon = "🌳"
