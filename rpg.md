@@ -1709,3 +1709,50 @@ zgodnie z zasadą "jedna runda = jeden wpis w rpg.md" z tego pliku.
   za nieszkodliwy — Godot automatycznie zrywa połączenia węzła-odbiorcy przy `free()` —
   świadomie pominięty. Po poprawkach: format-clean, pełny pakiet ponownie **209/209
   PASS, 376 asercji**.
+
+## 20. Umiejętności pasywne (Umiejętności... zamiast pełnego drzewka) — ZROBIONE (2026-09-02)
+
+Kolejna pozycja z otwartego backlogu sekcji 11 ("'Umiejętności' jako pasywne bonusy za
+pieniądze/reputację ... zamiast pełnego drzewka"). Zbadano najpierw stan pozostałych
+pozycji z tej samej listy backlogu ("Toast przy niskiej energii/pieniądzach",
+"Podsumowanie dnia", "Osiągnięcia/statystyki życiowe", "Kompas questa") — okazały się już
+w pełni zrobione i udokumentowane wcześniej (sekcje 11d/11e), tylko zweryfikowane
+ponownie (218/218 PASS przed tą rundą, bez zmian kodu) zamiast reimplementowane.
+
+- **`ProgressStore.PASSIVE_SKILLS`** (nowy `const Dictionary`) — jedno źródło prawdy
+  id/koszt/etykieta dla dwóch płaskich, jednorazowych zakupów (bez drzewka/poziomów/
+  prerekwizytów): `cheaper_shopping` (-10% w automatach) i `faster_energy_regen`
+  (+25% regeneracji energii), oba po 50 zł. Sam *efekt* każdej umiejętności żyje w
+  miejscu użycia (`VendingMachine.gd`/`LevelRuntime.gd`), nie w `ProgressStore` — ten
+  sam podział odpowiedzialności co `unlocked_shortcuts` (flaga tu, efekt u konsumenta).
+- **`ProgressStore.purchased_skills: Array[String]`** — trwałe pole (zapis/odczyt/reset),
+  `is_skill_purchased()`/`purchase_skill()` (zwraca `false` bez obciążenia przy
+  nieznanym id, już posiadanej umiejętności lub niewystarczających środkach — reużywa
+  `spend_money()`).
+- **`VendingMachine.interact()`** — rabat -10% doliczany po rabacie promocyjnym (mnoży
+  się z nim, nie zastępuje), przy `is_skill_purchased("cheaper_shopping")`.
+- **`LevelRuntime._update_energy()`** — `rest_recover_mul *= 1.25` przy
+  `is_skill_purchased("faster_energy_regen")`, na wierzchu mnożnika trudności (gracz
+  "hard" z umiejętnością wciąż regeneruje wolniej niż "easy" bez niej — bonus, nie
+  nadpisanie trudności).
+- **Testy**: `tests/economy/test_progress_store_passive_skills.gd` (7 — start
+  nieposiadana, udany zakup, zakup bez środków, podwójny zakup bez podwójnego
+  obciążenia, nieznane id, reset relockuje, przetrwanie save/load) +
+  `test_vending_machine.gd` (+1, rabat umiejętności na cenie skalowanej trudnością) +
+  `test_low_energy_toast.gd` (+1, porównanie tempa regeneracji z realnym `Player.tscn`
+  jako stopped/non-sprinting graczem — `velocity`/`is_sprinting` to prawdziwe pola
+  `PlayerMovement.gd`, nie duck-type'owalne na stubie).
+- **Gotcha złapany przez format→cache-refresh→test**: pierwsza wersja nowego testu
+  regeneracji użyła `var without_skill := _level._energy` — `_level` jest celowo
+  nietypowane (`var _level`, patrz komentarz w pliku), więc `:=` nie potrafił
+  wywnioskować typu z `Variant` i całość kończyła się `SCRIPT ERROR: Parse Error`
+  (widoczne dopiero w pełnym przebiegu GUT, 213/218 zamiast oczekiwanych 218 — plik z
+  błędem parsowania GUT po cichu pomija, ten sam wzorzec co gotcha z sekcji 15c/16).
+  Naprawione jawnym typem (`var without_skill: float = ...`).
+- **Walidacja**: `gdscript-toolkit:gdscript-format --verify-structure`, headless
+  cache-refresh, pełny pakiet — **218/218 PASS, 392 asercje** (poprzednio 209/209 — 9
+  nowych testów dokładnie zgadza się z liczbą dodanych). Boot-check czysty.
+- **Nie wpięte w UI** — świadomie data-only, ten sam wybór co sekcja 11e (dziennik
+  transakcji dostał ekran później, w osobnej rundzie — sekcja 16 — gdy backlog był już
+  gotowy pod UI; umiejętności czekają na tę samą decyzję).
+- **Bez wizualnej weryfikacji** — jak reszta tej sesji.

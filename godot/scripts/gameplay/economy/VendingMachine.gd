@@ -79,6 +79,11 @@ func interact(_player: Node) -> void:
 	var price := Difficulty.scaled_price(cost, SettingsStore.difficulty)
 	if _is_promo_active():
 		price = maxi(0, roundi(price * PROMO_DISCOUNT))
+	# rpg.md backlog ("Umiejętności... tańsze zakupy") — stacks with the promo
+	# discount above rather than replacing it, applied last so both cuts
+	# always compound the same way regardless of which one is active.
+	if ProgressStore.is_skill_purchased("cheaper_shopping"):
+		price = maxi(0, roundi(price * 0.9))
 	if ProgressStore.spend_money(price):
 		EventBus.energy_restore_requested.emit(energy_restored)
 		EventBus.item_purchased.emit(&"cola", price)

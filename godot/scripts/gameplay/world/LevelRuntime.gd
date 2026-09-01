@@ -230,6 +230,12 @@ func _update_energy(delta: float, player: Node) -> void:
 	var config := Difficulty.get_config(SettingsStore.difficulty)
 	var sprint_drain_mul: float = config.sprint_drain_mul
 	var rest_recover_mul: float = config.rest_recover_mul
+	# rpg.md backlog ("Umiejętności... szybsza regeneracja energii") — flat
+	# +25% on top of the difficulty's own rest_recover_mul, not a replacement
+	# for it (a "hard" player who bought the skill still recovers slower than
+	# an "easy" player who didn't — the skill is a bonus, not a difficulty override).
+	if ProgressStore.is_skill_purchased("faster_energy_regen"):
+		rest_recover_mul *= 1.25
 	var min_sprint_energy: float = config.min_sprint_energy
 
 	var stopped: bool = player.velocity.length_squared() < 0.1

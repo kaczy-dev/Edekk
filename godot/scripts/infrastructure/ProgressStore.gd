@@ -152,6 +152,41 @@ func unlock_shortcut(gate_id: String) -> void:
 	save_progress()
 
 
+## rpg.md backlog ("'Umiejętności' jako pasywne bonusy za pieniądze/reputację
+## ... zamiast pełnego drzewka") — a flat one-time purchase per skill, no
+## tree/prerequisites/levels. `PASSIVE_SKILLS` is the single source of truth
+## for id/cost/label so a future skills screen can list them without
+## duplicating data; the *effect* of each skill lives at its point of use
+## (VendingMachine.gd reads "cheaper_shopping", LevelRuntime.gd reads
+## "faster_energy_regen") rather than here, same "consumer decides how to use
+## the flag" shape as unlocked_shortcuts above.
+const PASSIVE_SKILLS := {
+	"cheaper_shopping": { "label": "Tańsze zakupy (-10% w automatach)", "cost": 50 },
+	"faster_energy_regen": { "label": "Szybsza regeneracja energii (+25%)", "cost": 50 },
+}
+
+var purchased_skills: Array[String] = []
+
+
+func is_skill_purchased(skill_id: String) -> bool:
+	return purchased_skills.has(skill_id)
+
+
+## Returns false (and spends nothing) if the skill id is unknown, already
+## owned, or `spend_money()` fails on insufficient funds — the same
+## fail-silently-return-false contract as spend_money() itself, so callers
+## can reuse its existing "za mało pieniędzy" toast pattern.
+func purchase_skill(skill_id: String) -> bool:
+	if purchased_skills.has(skill_id) or not PASSIVE_SKILLS.has(skill_id):
+		return false
+	var cost: int = PASSIVE_SKILLS[skill_id].cost
+	if not spend_money(cost):
+		return false
+	purchased_skills.append(skill_id)
+	save_progress()
+	return true
+
+
 func has_completed_quest(level_id: String, quest_id: String) -> bool:
 	for entry in quest_completion_history:
 		if entry.level_id == level_id and entry.quest_id == quest_id:
@@ -408,6 +443,7 @@ func save_progress() -> void:
 			"quest_completion_history": quest_completion_history,
 			"favorite_places": favorite_places,
 			"unlocked_shortcuts": unlocked_shortcuts,
+			"purchased_skills": purchased_skills,
 			"resume_level_id": resume_level_id,
 			"resume_pos_x": resume_pos_x,
 			"resume_pos_y": resume_pos_y,
@@ -471,6 +507,10 @@ func load_progress() -> void:
 	for id in parsed.get("unlocked_shortcuts", []):
 		loaded_shortcuts.append(str(id))
 	unlocked_shortcuts = loaded_shortcuts
+	var loaded_skills: Array[String] = []
+	for id in parsed.get("purchased_skills", []):
+		loaded_skills.append(str(id))
+	purchased_skills = loaded_skills
 	resume_level_id = parsed.get("resume_level_id", "")
 	resume_pos_x = parsed.get("resume_pos_x", 0.0)
 	resume_pos_y = parsed.get("resume_pos_y", 0.0)
@@ -494,6 +534,7 @@ func reset_progress() -> void:
 	quest_completion_history = []
 	favorite_places = []
 	unlocked_shortcuts = []
+	purchased_skills = []
 	resume_level_id = ""
 	resume_pos_x = 0.0
 	resume_pos_y = 0.0
