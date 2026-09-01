@@ -1784,3 +1784,48 @@ advance_minutes()` (dotąd używane tylko przez `TransitStation` do fast-travel)
   postawienia w scenie, ten sam status co pozostałe gotowe-ale-niepodłączone
   komponenty tej sesji.
 - **Bez wizualnej weryfikacji** — jak reszta tej sesji.
+
+## 22. Losowe potyczki uliczne (zależne od pory dnia/reputacji) — ZROBIONE (2026-09-02)
+
+Kolejna pozycja z backlogu sekcji 11 ("Rozbudowa combat/eksploracji... Losowe potyczki
+uliczne (zależne od pory dnia/reputacji), nie tylko zaplanowane na poziomie"). Zbudowana
+na trzech już istniejących mechanizmach zamiast nowego systemu spawnu: `EnemyRegistry.
+load_all()` + `EnemyActor.tscn` (te same co `LevelBuilder._build_enemy()` używa dla
+zaplanowanych wrogów), `ProgressStore.get_reputation(zone_id)` + `TimeManager.is_night()`
+(te same warunki co `PoliceReactionSystem.gd` czyta), i wzorzec "standalone Node,
+losowy timer" ze `StreetEventSpawner.gd`.
+
+- **`scripts/gameplay/world/StreetAmbushSpawner.gd`** (nowy, `class_name
+  StreetAmbushSpawner`) — losowy timer (90-240s), przy odpaleniu sprawdza
+  `_can_ambush()`: tylko w nocy (`TimeManager.is_night()`) I przy reputacji w danej
+  strefie `<= -15` (ten sam pierwszy, najłagodniejszy próg co
+  `PoliceReactionSystem.THRESHOLDS[0]` — reużyty jako "wystarczająco niebezpiecznie na
+  potyczki uliczne", nie nowa liczba wymyślona od zera). Spawnuje jednego losowego
+  wroga z `enemy_ids` (domyślnie thug/bandit) w stałej odległości (`SPAWN_DISTANCE =
+  220px`) od gracza pod losowym kątem, emituje ostrzegawczy toast ("Ktoś rusza w twoją
+  stronę z cienia!").
+- **Jedna aktywna potyczka naraz** — kolejny roll podczas gdy `_active_enemy` wciąż
+  żyje jest pomijany zamiast kolejkowany/stackowany (świadome ograniczenie: rzadkie,
+  pojedyncze ryzyko za wędrowanie po złej dzielnicy nocą, nie zalew wrogów).
+  `_active_enemy` czyszczone przez `tree_exited` (po zakończeniu animacji śmierci i
+  realnym `queue_free()`), nie przez sygnał `died` z `HealthComponent` — ten sam powód
+  co `GraffitiSpawner`/`_health.died` już dokumentują w `EnemyActor.gd` (animacja
+  śmierci gra jeszcze chwilę po `died`).
+- **Testy**: `tests/world/test_street_ambush_spawner.gd` (6 — brak potyczki w dzień
+  mimo złej reputacji, brak potyczki nocą przy dobrej reputacji, potyczka nocą przy złej
+  reputacji, spawn dodaje jednego wroga w prawidłowej odległości od gracza, druga
+  potyczka niemożliwa dopóki poprzedni wróg żyje, spawn emituje ostrzegawczy toast).
+- **Gotcha złapany podczas pisania testu**: pierwsza wersja `test_spawn_ambush_adds_
+  one_enemy_near_the_player` sprawdzała odległość PO `await wait_physics_frames(1)` —
+  własna `EnemyStateMachine` świeżo zespawnowanego wroga zaczyna gonić gracza
+  natychmiast, więc dystans zdążył się już zmienić o ~10px w jedną klatkę fizyki
+  (210.6 zamiast 220 ±1.0). Naprawione sprawdzeniem dystansu od razu po
+  `_spawn_ambush()`, przed jakąkolwiek klatką fizyki.
+- **Walidacja**: `gdscript-toolkit:gdscript-format --verify-structure`, headless
+  cache-refresh (nowy `class_name StreetAmbushSpawner`), pełny pakiet — **229/229 PASS,
+  404 asercje** (poprzednio 223/223 — 6 nowych testów dokładnie zgadza się z liczbą
+  dodanych). Boot-check czysty.
+- **Nie wpięty jeszcze** w żaden poziom — gotowy komponent do ręcznego postawienia w
+  scenie poziomu, ten sam status co `PoliceReactionSystem`/`StreetEventSpawner`.
+- **Bez wizualnej weryfikacji** — jak reszta tej sesji; w szczególności balans (jak
+  często/jak trudny wróg) nie był rozgrywany ręcznie.
