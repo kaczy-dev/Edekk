@@ -2017,3 +2017,71 @@ ingerencji w `_on_*_pressed()`.
   highlight (cyjanowa obwódka) na domyślnie zogniskowanym przycisku Kontynuuj —
   potwierdza, że `_wire_hover_feedback()` faktycznie działa w praktyce, nie tylko w
   teorii testów.
+
+## 27. Plan: interaktywna mapa miasta (Szczecin) — PLAN, nie zaimplementowane (2026-09-02)
+
+Odłożona pozycja z sekcji 11d ("mapa miasta") wraca teraz z konkretną treścią. Punkt
+wyjścia: `.claude/agents/godot-map.md`, surowy, niesparametryzowany szablon specyfikacji
+(bez frontmatter — to nie zarejestrowany subagent, tylko opis feature'a) opisujący
+`CityMapManager`/`MapMarker` z pan/zoom, kategoriami POI i panelem informacyjnym.
+
+**Korekta przy okazji**: `godot-map.md` (i, jak się okazało, `godot/README.md` +
+root `README.md` sprzed tej poprawki) mówiły o "Szczecinie jak Wrocław"/nawet wprost
+"Wrocław" — **błąd**. `rpg.md` (kanoniczne źródło) nigdy nie ustalił Wrocławia; sekcja 5d
+mówi wprost "kot w realnych miejscach Szczecina", kontynuowane przez pivot na współczesne
+RPG. Miasto tej gry to i zawsze było **Szczecin**. `README.md`/`godot/README.md`
+poprawione w tej samej rundzie (przed tą sekcją).
+
+**Korekty względem oryginalnej specyfikacji `godot-map.md`** (patrz analiza wyżej w
+konwersacji tej sesji, nieskopiowana tu w całości): `Control`-node UI zamiast
+`Node2D`/`Area2D` (konwencja całego projektu — `godot-ui` z karty GodotPrompter), bez
+`VisibleOnScreenNotifier2D` (mechanizm dla `Node2D`/fizyki, nie dla `Control`; przy
+kilkunastu-kilkudziesięciu markerach niepotrzebny).
+
+**Assety**: żadnych nowych pobrań. `kenney_minimap-pack` (CC0, już w
+`godot/assets/assety/`) daje gotowe ramki ikon markerów; `kenney_city-kit-industrial_2.0`/
+`kenney_city-kit-roads`/`kenney_rpg-urban-pack`/`kenney_tiny-town` (już w repo z pivotu
+sekcji 5d) pod ewentualne tło. Kategorie POI jako emoji (🏰 historia, 🌳 natura, ⚓
+nabrzeże/nowoczesność) — ten sam "emoji-jako-sprite" house style co reszta gry
+(`ItemData`/`LevelObjectData`/wszystkie interactable'e tej sesji), świadomie NIE
+prawdziwe zdjęcia Szczecina (ryzyko licencyjne w wydawanej grze, zero podłączonego
+narzędzia do ich wyszukania).
+
+**Treść — pierwsze 7 POI** (podane przez użytkownika, dwie kategorie z jego wiadomości):
+
+*Nabrzeże i Nowoczesność* (`waterfront`):
+- **Wały Chrobrego** — tarasy widokowe ~500m, architektura + panorama na Odrę i port.
+- **Dźwigozaury** — trzy zabytkowe, podświetlane dźwigi portowe z lat 30. na Łasztowni.
+- **Bulwary Szczecińskie** — odnowione nabrzeże, restauracje/kawiarnie na wieczorny spacer.
+
+*Historia i Kultura* (`history`):
+- **Zamek Książąt Pomorskich** — dawna siedziba władców Pomorza, renesansowy dziedziniec,
+  zegar astronomiczny.
+- **Podziemne Trasy Szczecina** — największy cywilny schron w Polsce pod Dworcem Głównym,
+  ścieżki z II Wojny Światowej i Zimnej Wojny.
+- **Park im. Jana Kasprowicza** — największy park miejski, Jezioro Rusałka, platany,
+  Pomnik Czynu Polaków.
+- **Ogród Różany (Różanka)** — ogród botaniczny z 1928, tysiące krzewów róż.
+
+### Kroki wdrożenia (małe, jeden na rundę)
+
+1. **Dane** — `scripts/core/MapPointData.gd` (`class_name MapPointData`, `extends
+   Resource`): `id: String`, `name: String`, `category: String`, `map_position:
+   Vector2`, `description: String`, `icon: String` (emoji). `data/map_points/*.tres` (7
+   powyższych) + `MapPointRegistry.gd` (`load_all()`, ten sam wzorzec co
+   `EnemyRegistry`/`ItemRegistry`).
+2. **Ekran** — `scenes/menu/CityMap.tscn` + `scripts/presentation/menu/CityMapMenu.gd`
+   (`ScrollContainer` + canvas, markery jako `TextureButton`/`Button` pozycjonowane z
+   `MapPointData.map_position`), dostępny z `SettingsMenu`, ten sam wzorzec co
+   `TransactionJournal`/`FavoritePlaces`/`StatsMenu`.
+3. **Filtr kategorii** — `OptionButton` (wzorzec `TransactionJournalMenu._FILTER_*`),
+   fade Tween zamiast twardego `visible`.
+4. **Panel informacyjny** — nowy `EventBus.map_marker_selected(data: MapPointData)`
+   (wzorzec `favorite_toggle_requested`), panel z opisem/nazwą (Tween pop-in/out jak
+   `ToastManager`/`TransitMenu`).
+5. **(Opcjonalnie, osobna decyzja)** pan/zoom ręczny (`gui_input` + skalowanie canvasu)
+   — bez `Camera2D`; do rozważenia dopiero jeśli lista punktów realnie tego wymaga.
+
+Każdy krok: GUT (`tests/ui/test_city_map_menu.gd` w stylu `test_stats_menu.gd`),
+format→cache-refresh→test, osobny wpis w `rpg.md` po ZROBIENIU (ta sekcja zostaje
+planem, nie logiem rundy — patrz nagłówek).
