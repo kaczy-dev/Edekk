@@ -9,6 +9,7 @@ extends Node2D
 ## same "every change autosaves" behaviour as gameStore's zustand `persist`.
 
 const HudScene := preload("res://scenes/ui/HUD.tscn")
+const PauseMenuScene := preload("res://scenes/ui/PauseMenu.tscn")
 
 @export var level: LevelData
 
@@ -17,6 +18,7 @@ var _collected_ids: Array[String] = []
 var _talked: Array[String] = []
 var _level_completed := false
 var _hud: HUD
+var _pause_menu: PauseMenu
 var _start_ticks_msec: int
 var _proximity_accum := 0.0
 const PROXIMITY_TICK_SEC := 0.1
@@ -93,6 +95,9 @@ func _ready() -> void:
 	_hud = HudScene.instantiate()
 	add_child(_hud)
 	energy_changed.connect(_hud.update_energy)
+
+	_pause_menu = PauseMenuScene.instantiate()
+	add_child(_pause_menu)
 	EventBus.energy_restore_requested.connect(restore_energy)
 	LevelBuilder.build(self, level, _collected_ids, has_background, _items, enemies)
 
@@ -182,6 +187,16 @@ func _save_checkpoint(player: Node) -> void:
 ## MIGRATION_MATRIX.md, "Proximity/goal hints". Throttled to 10/s, not every
 ## physics frame — a hint readout doesn't need 60fps precision.
 func _process(delta: float) -> void:
+	# QoL request ("pauza jak było w projekcie w Phaser") — polled here
+	# rather than _unhandled_input(), same reason as quick_save above. Only
+	# ever reached while unpaused: once _pause_menu.open() sets
+	# get_tree().paused = true, this whole node (default PAUSABLE mode)
+	# stops processing, so there's no risk of re-opening the menu on top of
+	# itself — PauseMenu.gd's own _process() (ALWAYS mode) handles the
+	# close-on-pause-key path while paused.
+	if Input.is_action_just_pressed("pause"):
+		_pause_menu.open()
+		return
 	if Input.is_action_just_pressed("quick_save"):
 		_quick_save()
 

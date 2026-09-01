@@ -1911,3 +1911,55 @@ dodanych). Boot-check czysty.
 **Nie wpięte jeszcze** w żaden poziom — oba komponenty gotowe do ręcznego postawienia w
 scenie, ten sam status co reszta gotowych-ale-niepodłączonych komponentów tej sesji.
 **Bez wizualnej weryfikacji.**
+
+## 25. Menu pauzy + panel sterowania (QoL: "jak było w Phaser") — ZROBIONE (2026-09-02)
+
+Użytkownik zgłosił konkretny brak: **nie da się wyjść do menu startowego w trakcie gry**
+(sprawdzone przed implementacją: `"pause"` akcja wejścia od dawna istniała w
+`project.godot`, bindowana na Escape/joypad Start, ale **nic jej nie konsumowało** — tylko
+`SettingsStore`/`KeybindMenu` znały jej nazwę do celów rebindowania). Poproszono o "pauzę
+i informacje jak było w projekcie w Phaserze" — port dwóch komponentów TS:
+`PauseMenu.tsx` (Wróć do gry/Zacznij od nowa/Wyjdź do menu) i `ControlsModal.tsx`
+(przegląd bindów, tylko do odczytu), połączonych w jedną scenę zamiast osobnych route'ów
+jak w TS (Godot-owa gra nie ma routingu, więc oba to po prostu jeden overlay z dwoma
+panelami).
+
+- **`scripts/presentation/ui/PauseMenu.gd`** (nowy, `class_name PauseMenu`, `extends
+  CanvasLayer`) + `scenes/ui/PauseMenu.tscn` — `process_mode = ALWAYS`, żeby działać
+  mimo `get_tree().paused = true` (reszta drzewa — `LevelRuntime`, gracz, wrogowie,
+  timery — zostaje na domyślnym `PAUSABLE`, więc spauzowanie drzewa to dosłownie
+  "zamroź rozgrywkę" bez żadnych dodatkowych flag gdziekolwiek indziej). Dwa panele:
+  główny (Wróć do gry / Sterowanie / Zacznij poziom od nowa / Wyjdź do menu) i
+  podrzędny read-only panel sterowania.
+- **Panel sterowania reużywa `KeybindMenu._ACTION_LABELS`** (dostęp przez nazwę klasy,
+  nie duplikacja słownika) i `SettingsStore.get_key_label()` — lista zawsze pokazuje
+  AKTUALNE bindy gracza (nie tylko domyślne), automatycznie spójna z ewentualnym
+  rebindem, bo budowana na nowo przy każdym `open()`.
+- **Świadomie bez dialogów potwierdzających** restart/wyjście (TS miał `AlertDialog` dla
+  obu) — uproszczenie w duchu reszty sesji; `ProgressStore` autosave'uje przyrostowo, więc
+  jedyne ryzyko przypadkowego restartu/wyjścia to sesyjny stan bieżącego poziomu, nie
+  trwały postęp.
+- **`LevelRuntime.gd`** — instancjonuje `PauseMenu` w `_ready()`, w `_process()` (ten sam
+  `Input.is_action_just_pressed()`-polling co `quick_save`, nie `_unhandled_input()` —
+  ten sam, już udokumentowany powód: niepewne pod headless GUT-owym
+  `Input.parse_input_event()`) wywołuje `_pause_menu.open()` po naciśnięciu "pause".
+  Zamknięcie menu (klawisz pauzy ponownie, lub przycisk "Wróć do gry") to
+  odpowiedzialność samego `PauseMenu.gd` (działa dzięki `ALWAYS` mode nawet gdy drzewo
+  jest spauzowane) — `LevelRuntime._process()` sam nigdy nie odpala ponownie, bo
+  zatrzymuje się wraz z resztą drzewa w momencie spauzowania.
+- **Testy**: `tests/ui/test_pause_menu.gd` (8 — start ukryte, `open()` pokazuje i
+  pauzuje, wznowienie chowa i wznawia, klawisz pauzy bez faktycznego naciśnięcia nic nie
+  robi, panel sterowania się przełącza, wznowienie zamyka też panel sterowania, lista
+  bindów ma tyle wierszy ile `REBINDABLE_ACTIONS`, wiersz pokazuje aktualny bind). **Bez
+  testu restartu/wyjścia** — oba wywołują prawdziwy `SceneRouter.
+  change_scene_to_file()`/`reload_current_scene()`, co `test_transit_station.gd` już
+  udokumentował jako niebezpieczne w gołym przebiegu GUT (osierocone węzły/błędy silnika)
+  — ten sam podział odpowiedzialności: testowany stan pauzy/wznowienia/panelu, nie
+  faktyczna nawigacja.
+- **Walidacja**: `gdscript-toolkit:gdscript-format --verify-structure`, headless
+  cache-refresh (nowy `class_name PauseMenu`), pełny pakiet — **249/249 PASS, 437
+  asercji** (poprzednio 241/241 — 8 nowych testów dokładnie zgadza się z liczbą
+  dodanych). Boot-check czysty.
+- **Bez wizualnej weryfikacji interakcji** — znane ograniczenie z sekcji 11d
+  (`SendKeys` nie dociera do realnego okna gry), więc nie dało się nacisnąć Escape na
+  żywo i zobaczyć menu w akcji; logika potwierdzona wyłącznie przez GUT.
