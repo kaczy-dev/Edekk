@@ -25,8 +25,10 @@ extends Area2D
 ## as a guard against a future multi-window swing).
 var _hit_this_swing: Array[Node] = []
 
+
 func reset_swing() -> void:
 	_hit_this_swing.clear()
+
 
 func apply_hits() -> void:
 	for body in get_overlapping_bodies():
@@ -38,7 +40,9 @@ func apply_hits() -> void:
 		if health == null or health.is_dead():
 			continue
 		_hit_this_swing.append(body)
-		health.take_damage(attack_damage)
+		var status := get_node_or_null("../StatusEffects") as StatusEffectComponent
+		var multiplier := status.attack_damage_multiplier if status != null else 1.0
+		health.take_damage(roundi(attack_damage * multiplier))
 		AudioService.play_hit()
 		EventBus.hit_landed.emit(body.global_position)
 		# EventBus.enemy_damaged/enemy_died are emitted by EnemyActor's own

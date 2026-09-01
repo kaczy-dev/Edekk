@@ -1617,3 +1617,42 @@ wpis naprawiony teraz, zgodnie z zasadą "jedna runda = jeden wpis w rpg.md").
   `StreetEventSpawner.gd` z sekcji 15) i emisji `reputation_changed` z realnego systemu
   reputacji gracza (obecnie emitowany tylko przez testy).
 - **Bez wizualnej weryfikacji** — jak reszta tej sesji, logika potwierdzona tylko przez GUT.
+
+## 18. Jednorazowe znajdźki combat — ZROBIONE (2026-09-01)
+
+Kolejna pozycja z backlogu ("Bronie/przedmioty jednorazowe ze świata — tymczasowy bonus do
+ataku, lekki system bez pełnego ekwipunku" — sekcja "Rozbudowa combat/eksploracji").
+Zaprojektowane jako rozszerzenie istniejącego, już modularnego `StatusEffectComponent.gd`
+zamiast nowego równoległego systemu buffów.
+
+- **`scripts/gameplay/player/StatusEffectComponent.gd`** — dodany `EffectType.ATTACK_BOOST`
+  (`ATTACK_BOOST_MULTIPLIER = 2.0`) i pole `attack_damage_multiplier`, resetowane w
+  `_clear_current()`/`_on_expired()` tak samo jak `speed_multiplier`/`paralyzed`. Nadal
+  tylko jeden aktywny efekt naraz (bez stackowania) — nieskomicowana zasada modułu
+  nietknięta.
+- **`scripts/gameplay/player/PlayerHitbox.gd`** — `apply_hits()` czyta
+  `StatusEffects.attack_damage_multiplier` (sibling node przez `get_node_or_null("../StatusEffects")`)
+  i skaluje `attack_damage` przed `take_damage()`.
+- **`scripts/gameplay/items/CombatPickup.gd`** (nowy) + `scenes/interactables/CombatPickup.tscn`
+  — samodzielny, jednorazowy `Area2D` (ten sam overlap-triggered, one-shot kształt co
+  `ItemPickup.gd`), świadomie NIE podpięty pod `ItemData`/`Inventory`/`ProgressStore` — to
+  przejściowy combat-buff, nie trwały kolekcjonerski przedmiot, więc żadna maszyneria
+  save/load ani chipów w HUD-zie nie ma zastosowania. Przy overlapie z graczem: aplikuje
+  `ATTACK_BOOST` na 20s, gra `AudioService.play_pickup()`, emituje
+  `EventBus.toast_requested`, `queue_free()`.
+- **Testy** (8 nowych, `tests/combat/`): `test_status_effect_component.gd` (4, pierwszy
+  bezpośredni test tego komponentu — wcześniej testowany tylko pośrednio przez
+  `PlayerMovement`), `test_combat_pickup.gd` (3), plus jeden test end-to-end w
+  `test_combat.gd` (`test_player_attack_with_attack_boost_deals_doubled_damage` — realny
+  `Player.tscn`/`EnemyActor.tscn`, Input → PlayerAttack → PlayerHitbox → HealthComponent,
+  potwierdza 3×2=6 obrażeń zamiast 3).
+- **Walidacja**: `gdscript-toolkit:gdscript-format --verify-structure` na wszystkich
+  zmienionych/nowych plikach, headless cache-refresh (nowy `class_name CombatPickup`) przed
+  testami, pełny pakiet — **197/197 PASS, 360 asercji** (`scripts/run_godot_tests.sh`,
+  poprzednio 189/189 — 8 nowych testów dokładnie zgadza się z liczbą dodanych).
+  Nieszkodliwy segfault Godota **po** wypisaniu "All tests passed!" (znany, powtarzający
+  się przy zamykaniu procesu headless GUT — nie wpływa na wynik).
+- **Nie wpięte jeszcze** w żaden poziom — `CombatPickup.tscn` gotowy do ręcznego
+  postawienia w scenie, analogicznie do wcześniejszych gotowych-ale-niepodłączonych
+  komponentów tej sesji (`StreetEventSpawner`, `PoliceReactionSystem`).
+- **Bez wizualnej weryfikacji** — jak reszta tej sesji.
