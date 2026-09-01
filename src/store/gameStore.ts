@@ -18,7 +18,6 @@ export type ArrowAnimation = "smooth" | "snap" | "off";
 export type RenderQuality = "low" | "medium" | "high" | "ultra";
 
 export interface ControlSettings {
-  sensitivity: number; // 0.5 .. 1.5 — multiplier on max speed
   sprintMode: SprintMode; // hold Shift vs toggle
   joystickSide: JoystickSide;
   touchControl: TouchControl; // analog stick vs D-pad
@@ -90,7 +89,6 @@ export const DIFFICULTIES: Record<Difficulty, DifficultyConfig> = {
 };
 
 export const DEFAULT_CONTROLS: ControlSettings = {
-  sensitivity: 1,
   sprintMode: "hold",
   joystickSide: "left",
   touchControl: "stick",

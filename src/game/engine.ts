@@ -197,7 +197,6 @@ export class GameEngine {
 
   private update(dt: number) {
     const diff: DifficultyConfig = DIFFICULTIES[this.difficulty];
-    const sensitivity = Math.max(0.5, Math.min(1.5, this.input.settings.sensitivity));
     const dir = this.input.getDirection();
     const wantsSprint = this.input.isSprinting() && (dir.x !== 0 || dir.y !== 0);
     const canSprint = this.energy > diff.minSprintEnergy;
@@ -208,7 +207,7 @@ export class GameEngine {
       this.events.onSprintState?.(this.sprinting);
     }
 
-    const maxSpeed = (this.sprinting ? RUN_SPEED : WALK_SPEED) * sensitivity;
+    const maxSpeed = this.sprinting ? RUN_SPEED : WALK_SPEED;
 
     const targetVx = dir.x * maxSpeed;
     const targetVy = dir.y * maxSpeed;

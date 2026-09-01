@@ -218,25 +218,6 @@ function SettingsPage() {
           </div>
 
           <div>
-            <label className="flex items-center justify-between text-sm font-medium">
-              Czułość ruchu
-              <span className="text-muted-foreground">{controls.sensitivity.toFixed(2)}×</span>
-            </label>
-            <div className="mt-3">
-              <Slider
-                min={0.5}
-                max={1.5}
-                step={0.05}
-                value={[controls.sensitivity]}
-                onValueChange={(value) => setControls({ sensitivity: value[0] })}
-              />
-            </div>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Wpływa na maksymalną prędkość Edka.
-            </p>
-          </div>
-
-          <div>
             <p className="text-sm font-medium">Tryb biegu (Shift / BIEG)</p>
             <div className="mt-3">
               <SegmentedControl
