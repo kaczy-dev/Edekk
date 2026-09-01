@@ -12,7 +12,8 @@ extends CanvasLayer
 ## guards both the toggle and every command) — never available in an
 ## exported release build.
 ##
-## Commands: /god, /give_item <id> [count], /load_level <1-6>, /clear_save.
+## Commands: /god, /give_item <id> [count], /give_money [amount],
+## /load_level <1-6>, /clear_save, /advance_day.
 
 var _panel: PanelContainer
 var _output: RichTextLabel
@@ -43,7 +44,7 @@ func _build_ui() -> void:
 	vbox.add_child(_output)
 
 	_input = LineEdit.new()
-	_input.placeholder_text = "/god, /give_item <id> [n], /load_level <1-6>, /clear_save"
+	_input.placeholder_text = "/god, /give_item <id> [n], /give_money [n], /load_level <1-6>, /clear_save, /advance_day"
 	_input.text_submitted.connect(_on_submitted)
 	vbox.add_child(_input)
 
@@ -107,9 +108,19 @@ func _run_command(text: String) -> void:
 			var path := "res://scenes/levels/Level%d.tscn" % n
 			_log("loading %s" % path)
 			SceneRouter.change_scene_to_file(path)
+		"/give_money":
+			var amount := int(parts[1]) if parts.size() > 1 and parts[1].is_valid_int() else 20
+			ProgressStore.add_money(amount)
+			_log("gave %d zł (wallet: %d)" % [amount, ProgressStore.money])
 		"/clear_save":
 			ProgressStore.reset_progress()
 			_log("progress cleared, reloading current scene")
 			SceneRouter.reload_current_scene()
+		"/advance_day":
+			# QA tool for the day-summary toast (rpg.md section 11d) — a real
+			# day takes 24 real minutes (TimeManager.MINUTES_PER_SECOND), far
+			# too slow to sit through just to see the summary fire.
+			TimeManager.advance_minutes(TimeManager.HOURS_PER_DAY * TimeManager.MINUTES_PER_HOUR - TimeManager.current_hour * TimeManager.MINUTES_PER_HOUR - TimeManager.current_minute)
+			_log("advanced to day %d" % TimeManager.current_day)
 		_:
 			_log("unknown command: %s" % parts[0])

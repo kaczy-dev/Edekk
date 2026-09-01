@@ -21,6 +21,7 @@ extends CanvasLayer
 @onready var _message_label: Label = $MessageLabel
 @onready var _energy_label: Label = $EnergyPanel/EnergyLabel
 @onready var _interact_prompt: Label = $InteractPrompt
+@onready var _compass: Label = $CompassArrow
 
 ## Shown/hidden by LevelRuntime relaying Player/InteractionDetector's
 ## nearest_changed signal — see InteractionDetector.gd, "Część 4".
@@ -120,11 +121,38 @@ func update_proximity(tracks: Dictionary[String, ProximityTrack]) -> void:
 
 func _process(delta: float) -> void:
 	if _last_tracks.is_empty():
+		_compass.visible = false
 		return
 	for quest_id in _last_tracks:
 		var target := _last_tracks[quest_id].dist
 		_displayed_dist[quest_id] = lerpf(_displayed_dist[quest_id], target, PROXIMITY_LERP_RATE * delta)
 		_update_hint_row(quest_id)
+	_update_compass()
+
+## rpg.md section 11 backlog ("Mapa/wskaźnik celu questa") — points the
+## compass arrow at whichever active quest is currently nearest (by raw
+## dist, not the smoothed _displayed_dist — a compass heading jumping to a
+## new target should snap instantly, unlike the numeric distance label which
+## intentionally lerps). Hidden when the "at" tier is reached (arm's length
+## from the target — a heading arrow stops being useful information once
+## you're standing on the thing).
+func _update_compass() -> void:
+	var nearest_id := ""
+	var nearest_dist := INF
+	for quest_id in _last_tracks:
+		var track: ProximityTrack = _last_tracks[quest_id]
+		if track.dist < nearest_dist:
+			nearest_dist = track.dist
+			nearest_id = quest_id
+	if nearest_id == "" or _last_tracks[nearest_id].tier == "at":
+		_compass.visible = false
+		return
+	var direction: Vector2 = _last_tracks[nearest_id].direction
+	if direction == Vector2.ZERO:
+		_compass.visible = false
+		return
+	_compass.visible = true
+	_compass.rotation = direction.angle()
 
 const _TIER_KEYS := {"at": "UI_TIER_AT", "near": "UI_TIER_NEAR", "mid": "UI_TIER_MID", "far": "UI_TIER_FAR"}
 
