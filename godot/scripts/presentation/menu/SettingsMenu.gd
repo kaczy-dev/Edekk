@@ -17,6 +17,7 @@ const _DIFFICULTY_ORDER := ["easy", "medium", "hard", "explorer"]
 @onready var _keybind_button: Button = $Panel/VBox/KeybindButton
 @onready var _journal_button: Button = $Panel/VBox/JournalButton
 @onready var _favorites_button: Button = $Panel/VBox/FavoritesButton
+@onready var _stats_button: Button = $Panel/VBox/StatsButton
 @onready var _back_button: Button = $Panel/VBox/BackButton
 
 
@@ -39,6 +40,7 @@ func _ready() -> void:
 	_keybind_button.pressed.connect(_on_keybind_pressed)
 	_journal_button.pressed.connect(_on_journal_pressed)
 	_favorites_button.pressed.connect(_on_favorites_pressed)
+	_stats_button.pressed.connect(_on_stats_pressed)
 	_back_button.pressed.connect(_on_back_pressed)
 
 
@@ -56,6 +58,10 @@ func _on_journal_pressed() -> void:
 
 func _on_favorites_pressed() -> void:
 	SceneRouter.change_scene_to_file("res://scenes/menu/FavoritePlaces.tscn")
+
+
+func _on_stats_pressed() -> void:
+	SceneRouter.change_scene_to_file("res://scenes/menu/StatsMenu.tscn")
 
 
 func _on_back_pressed() -> void:

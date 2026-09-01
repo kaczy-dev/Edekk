@@ -1829,3 +1829,25 @@ losowy timer" ze `StreetEventSpawner.gd`.
   scenie poziomu, ten sam status co `PoliceReactionSystem`/`StreetEventSpawner`.
 - **Bez wizualnej weryfikacji** — jak reszta tej sesji; w szczególności balans (jak
   często/jak trudny wróg) nie był rozgrywany ręcznie.
+
+## 23. Ekran statystyk życiowych (StatsMenu) — ZROBIONE (2026-09-02)
+
+Dane (`ProgressStore.total_enemies_defeated`/`total_money_earned`/`total_days_survived`)
+istniały od sekcji 11e, świadomie bez ekranu ("data-only"). Ten sam schemat co
+`TransactionJournal`/`FavoritePlaces` dostały w sekcji 16 — backlog był gotowy pod UI,
+dołożenie ekranu.
+
+- **`scripts/presentation/menu/StatsMenu.gd`** (nowy, `class_name StatsMenu`) +
+  `scenes/menu/StatsMenu.tscn` — trzy statyczne etykiety, bez listy/filtra (prostsze niż
+  `FavoritePlacesMenu`, bo dane to trzy liczby, nie kolekcja). Dostępny z
+  `SettingsMenu.tscn` (nowy przycisk "Statystyki"), panel powiększony `±190`→`±215`, ten
+  sam wzorzec powiększania co przy dodaniu poprzednich dwóch przycisków w sekcji 16.
+- **Testy**: `tests/ui/test_stats_menu.gd` (2 — świeży zapis pokazuje same zera, ekran
+  odzwierciedla aktualne wartości pól).
+- **Walidacja**: `gdscript-toolkit:gdscript-format --verify-structure`, headless
+  cache-refresh (nowy `class_name StatsMenu`), pełny pakiet — **231/231 PASS, 410
+  asercji** (poprzednio 229/229 — 2 nowe testy dokładnie zgadzają się z liczbą
+  dodanych). Boot-check czysty.
+- **Bez wizualnej weryfikacji** — jak reszta tej sesji; czy panel mieści się bez
+  przycinania na wszystkich rozdzielczościach nieprzetestowane (ten sam standing gap co
+  sekcja 16 już notowała dla `SettingsMenu`).
