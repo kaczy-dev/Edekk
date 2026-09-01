@@ -22,6 +22,24 @@ const SQUASH_STRETCH_FLIGHT := Vector2(0.8, 1.3)
 const SQUASH_LANDING := Vector2(1.3, 0.7)
 const SQUASH_LANDING_RECOVER_DURATION := 0.15
 
+## feature/rpg-combat (rpg.md): the cat has no attack animation (see
+## PlayerAttackState.gd's header). First cut (squash alone) read as
+## "straszne" on manual playtest — a static pose with nothing selling the
+## idea of reaching toward something. Rebuilt as three simultaneous cues:
+## a forward lunge of the sprite (not CharacterBody2D — collision must not
+## move), a sharper squash, and a real slash VFX sprite in the facing
+## direction (see _spawn_slash()).
+const SQUASH_ATTACK := Vector2(1.25, 0.78)
+const SQUASH_ATTACK_RECOVER_DURATION := 0.18
+const LUNGE_DISTANCE := 14.0
+const LUNGE_OUT_DURATION := 0.08
+const LUNGE_RECOVER_DURATION := 0.16
+
+const SLASH_TEXTURE := preload("res://assets/assety/brackeys_vfx_bundle/particles/alpha/slash_01_a.png")
+const SLASH_OFFSET := 26.0 # px in front of the cat
+const SLASH_SCALE := 0.12 # source is 512x512 — reads as a ~60px swipe
+const SLASH_FADE_DURATION := 0.22
+
 ## Minimum speed to count as "moving" for animation purposes — avoids the
 ## walk cycle twitching on/off from friction's asymptotic approach to zero.
 const ANIM_MOVE_THRESHOLD := 5.0
@@ -93,6 +111,57 @@ func on_hop_landed() -> void:
 	_squash_tween = create_tween()
 	_squash_tween.tween_property(_sprite, "scale", _sprite_base_scale, SQUASH_LANDING_RECOVER_DURATION) \
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+
+## feature/rpg-combat: squash + a forward lunge of the sprite (offset only —
+## CharacterBody2D.position/collision never move, this is purely cosmetic,
+## same principle as the hop's arc offset) + a slash VFX in the direction
+## the cat is currently facing (Vector2.RIGHT.rotated(last_facing_angle) —
+## the same angle drift/lean already read off velocity, see that field's
+## comment above).
+func on_attack_started() -> void:
+	if _squash_tween != null and _squash_tween.is_valid():
+		_squash_tween.kill()
+	_sprite.scale = _sprite_base_scale * SQUASH_ATTACK
+
+	var direction := Vector2.RIGHT.rotated(last_facing_angle)
+
+	# Lunge is X-only, deliberately: PlayerMovement._physics_process() writes
+	# _sprite.position.y unconditionally every physics frame (the hop arc
+	# offset — 0 outside a hop), which would fight a Y-axis tween here and
+	# erase it within one frame. A pure-X lunge is weaker for a straight
+	# up/down attack but never silently gets cancelled, unlike a Vector2 one
+	# would have (found by tracing that line, not by seeing it fail).
+	_squash_tween = create_tween()
+	_squash_tween.set_parallel(true)
+	_squash_tween.tween_property(_sprite, "scale", _sprite_base_scale, SQUASH_ATTACK_RECOVER_DURATION) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_squash_tween.tween_property(_sprite, "position:x", direction.x * LUNGE_DISTANCE, LUNGE_OUT_DURATION) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_squash_tween.chain().tween_property(_sprite, "position:x", 0.0, LUNGE_RECOVER_DURATION) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+
+	_spawn_slash(direction)
+
+## One-off Sprite2D + tween, not pooled through VfxSpawner — attacks are
+## gated by PlayerAttack.COOLDOWN (0.25s), an order of magnitude less
+## frequent than the ghost-trail's 45ms interval that docs/ROADMAP.md's
+## rule-7 audit actually flagged as a problem. Matches this project's
+## existing tolerance for _spawn_ghost() below, not a new anti-pattern.
+func _spawn_slash(direction: Vector2) -> void:
+	var slash := Sprite2D.new()
+	slash.texture = SLASH_TEXTURE
+	slash.global_position = _sprite.get_parent().global_position + direction * SLASH_OFFSET
+	slash.rotation = direction.angle() + PI / 2.0 # texture's crescent opens "up" by default
+	slash.scale = Vector2(SLASH_SCALE, SLASH_SCALE) * (Vector2(-1, 1) if direction.x < 0 else Vector2.ONE)
+	slash.modulate = Color(1.0, 1.0, 1.0, 0.9)
+	slash.z_index = _sprite.z_index + 1
+	_ghost_parent.add_child(slash)
+
+	var tween := slash.create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(slash, "modulate:a", 0.0, SLASH_FADE_DURATION)
+	tween.tween_property(slash, "scale", slash.scale * 1.4, SLASH_FADE_DURATION)
+	tween.chain().tween_callback(slash.queue_free)
 
 ## Ported from LevelScene.ts update(): direction picked from the dominant
 ## velocity axis (not "last key pressed"), animation frozen on its current

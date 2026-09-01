@@ -92,6 +92,13 @@ requires = {
 }
 message = "Aleja prowadzi dalej. Czas na złote liście!"
 
+[sub_resource type="Resource" id="Obj_thug1"]
+script = ExtResource("2")
+id = "thug1"
+kind = "enemy"
+rect = Rect2(950, 500, 40, 40)
+enemy_id = &"thug"
+
 [sub_resource type="Resource" id="Quest_mice"]
 script = ExtResource("3")
 id = "q2-mice"
@@ -130,7 +137,7 @@ intro = "Słońce grzeje klomby przy Pomniku Czynu Polaków. Edek węszy wśród
 objective = "Znajdź 3 myszki, pogadaj z wiewiórką, znajdź wyjście w głąb alei."
 unlock_hint = "Odblokowane po wieczornym spacerze na Wałach Chrobrego (Poziom 1)."
 quests = Array[ExtResource("3")]([SubResource("Quest_mice"), SubResource("Quest_squirrel"), SubResource("Quest_gate")])
-objects = Array[ExtResource("2")]([SubResource("Obj_tree"), SubResource("Obj_monument"), SubResource("Obj_bushes_right"), SubResource("Obj_bushes_bottom_right"), SubResource("Obj_center_tree2"), SubResource("Obj_trees_right_edge"), SubResource("Obj_m1"), SubResource("Obj_m2"), SubResource("Obj_m3"), SubResource("Obj_squirrel"), SubResource("Obj_i_photo"), SubResource("Obj_gate")])
+objects = Array[ExtResource("2")]([SubResource("Obj_tree"), SubResource("Obj_monument"), SubResource("Obj_bushes_right"), SubResource("Obj_bushes_bottom_right"), SubResource("Obj_center_tree2"), SubResource("Obj_trees_right_edge"), SubResource("Obj_m1"), SubResource("Obj_m2"), SubResource("Obj_m3"), SubResource("Obj_squirrel"), SubResource("Obj_i_photo"), SubResource("Obj_gate"), SubResource("Obj_thug1")])
 mood = {
 "brightness": 1.03,
 "contrast": 1.04,

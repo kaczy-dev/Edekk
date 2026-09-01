@@ -39,6 +39,9 @@ const HOP_LAND_SHAKE_DURATION := 0.06
 const HOP_LAND_SHAKE_AMPLITUDE_PX := 2.0
 
 @onready var _hop: PlayerHop = $Hop
+@onready var _attack: PlayerAttack = $Attack
+@onready var _hitbox: PlayerHitbox = $Hitbox
+@onready var _health: HealthComponent = $HealthComponent
 @onready var _sprite: AnimatedSprite2D = $Sprite2D
 @onready var _camera: CameraFX = $Camera2D
 @onready var _paw_dust: CPUParticles2D = $PawDustParticles
@@ -76,6 +79,16 @@ func _ready() -> void:
 	_hop.hop_started.connect(_visuals.on_hop_started)
 	_hop.hop_landed.connect(_visuals.on_hop_landed)
 	_hop.hop_landed.connect(_on_hop_landed_shake)
+	_attack.attack_started.connect(_hitbox.reset_swing)
+	_attack.attack_started.connect(_visuals.on_attack_started)
+	_attack.attack_hit_window_started.connect(_hitbox.apply_hits)
+	# Single source of truth for EventBus.player_damaged (feature/rpg-hud,
+	# rpg.md) — relays HealthComponent's own signal instead of every damage
+	# source (today: EnemyHitbox) emitting to EventBus itself. Also
+	# announces the starting HP immediately so a health bar shows a full
+	# bar at spawn, not an empty one until the first hit lands.
+	_health.health_changed.connect(func(current: int, max_hp: int) -> void: EventBus.player_damaged.emit(current, max_hp))
+	EventBus.player_damaged.emit(_health.current_hp, _health.max_hp)
 	_state_machine.setup(self, _hop)
 
 func _physics_process(delta: float) -> void:
@@ -90,12 +103,16 @@ func _physics_process(delta: float) -> void:
 	var hop_velocity: Variant = null if _status.paralyzed else _hop.update(delta, input_dir)
 	_sprite.position.y = -_hop.arc_progress() * PlayerHop.ARC_HEIGHT
 
+	if not _status.paralyzed:
+		_attack.update(delta)
+	var is_attacking := _attack.is_active()
+
 	var pre_slide_speed := velocity.length()
 
 	is_moving = input_dir != Vector2.ZERO
 	is_sprinting = can_sprint and Input.is_action_pressed("sprint") and is_moving
 
-	if hop_velocity == null:
+	if hop_velocity == null and not is_attacking:
 		var sprinting := is_sprinting
 		var target_speed := (RUN_SPEED if sprinting else WALK_SPEED) * _status.speed_multiplier
 		var target_velocity := input_dir * target_speed
@@ -137,7 +154,7 @@ func _physics_process(delta: float) -> void:
 	# (HOP needs its velocity applied before sliding, not after — this is an
 	# intentional reordering from before this change, when HOP's velocity was
 	# written inline above and move_and_slide() ran regardless of state).
-	_state_machine.physics_update(delta, hop_velocity)
+	_state_machine.physics_update(delta, hop_velocity, is_attacking)
 
 	move_and_slide()
 	_visuals.update_animation(delta, velocity, is_sprinting, RUN_SPEED)

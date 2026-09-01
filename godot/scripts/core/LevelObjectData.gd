@@ -2,9 +2,11 @@ class_name LevelObjectData
 extends Resource
 ## Ported from src/game/types.ts (LevelObject).
 ##
-## `kind` is one of "obstacle" | "item" | "npc" | "goal" | "trigger" — kept as
-## a plain String (not an enum) to match the TS source and stay easy to
-## diff against it; LevelBuilder.gd switches on it.
+## `kind` is one of "obstacle" | "item" | "npc" | "goal" | "trigger" |
+## "enemy" — kept as a plain String (not an enum) to match the TS source and
+## stay easy to diff against it; LevelBuilder.gd switches on it. "enemy" has
+## no TS equivalent (combat didn't exist in the Phaser source) — added by
+## rpg.md's combat plan, same shape as the others.
 
 @export var id: String
 @export var kind: String
@@ -21,3 +23,7 @@ extends Resource
 ## Optional horizontal patrol for "npc" objects. 0 means "static, no patrol".
 @export var patrol_range: float = 0.0
 @export var patrol_speed: float = 0.0
+## Which data/enemies/*.tres to spawn for "enemy"-kind objects — resolved
+## through EnemyRegistry the same way item_id is resolved through
+## ItemRegistry.
+@export var enemy_id: StringName = &""

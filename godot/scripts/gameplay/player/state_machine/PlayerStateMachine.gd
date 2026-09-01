@@ -23,7 +23,7 @@ extends Node
 ## this exact refactor — no input-simulation/screenshot tool exists to
 ## visually re-verify a rewrite, only assertions on state/velocity values).
 
-enum StateName { IDLE, WALK, SPRINT, HOP }
+enum StateName { IDLE, WALK, SPRINT, HOP, ATTACK }
 
 ## Anim-move threshold duplicated from PlayerMovement.gd's own
 ## ANIM_MOVE_THRESHOLD (that constant isn't reachable from here —
@@ -46,6 +46,7 @@ func setup(player: CharacterBody2D, hop: PlayerHop) -> void:
 		StateName.WALK: PlayerWalkState.new(),
 		StateName.SPRINT: PlayerSprintState.new(),
 		StateName.HOP: PlayerHopState.new(),
+		StateName.ATTACK: PlayerAttackState.new(),
 	}
 	for state in _states.values():
 		state.player = player
@@ -65,8 +66,8 @@ func setup(player: CharacterBody2D, hop: PlayerHop) -> void:
 ## this — classification reads that result, same as before this change. For
 ## HOP, PlayerMovement has NOT written velocity yet — that happens below,
 ## inside `_states[StateName.HOP].physics_update()`, after transitioning.
-func physics_update(delta: float, hop_velocity: Variant = null) -> void:
-	var next := _classify(hop_velocity)
+func physics_update(delta: float, hop_velocity: Variant = null, is_attacking: bool = false) -> void:
+	var next := _classify(hop_velocity, is_attacking)
 	if next != current:
 		_states[current].exit()
 		current = next
@@ -75,7 +76,15 @@ func physics_update(delta: float, hop_velocity: Variant = null) -> void:
 		(_states[current] as PlayerHopState).hop_velocity = hop_velocity
 	_states[current].physics_update(delta)
 
-func _classify(hop_velocity: Variant) -> StateName:
+## `is_attacking` takes priority over HOP: an attack pressed mid-hop still
+## roots the player for its swing rather than letting the hop's velocity
+## override win — attacks are the more deliberate, combat-critical action.
+## In practice this rarely matters (PlayerAttack.is_active() and
+## PlayerHop.is_active() are each gated by their own cooldowns), but the
+## ordering has to pick one, and combat correctness wins over hop feel here.
+func _classify(hop_velocity: Variant, is_attacking: bool) -> StateName:
+	if is_attacking:
+		return StateName.ATTACK
 	if hop_velocity != null:
 		return StateName.HOP
 	if _player.velocity.length() < MOVE_THRESHOLD:

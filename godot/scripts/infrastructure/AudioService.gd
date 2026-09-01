@@ -97,3 +97,31 @@ func play_completion(volume: float = 1.0) -> void:
 func play_danger(volume: float = 1.0) -> void:
 	play_tone(220.0, 80.0, volume * 0.4)
 	get_tree().create_timer(0.1).timeout.connect(play_tone.bind(220.0, 80.0, volume * 0.4))
+
+## Combat SFX — rpg.md's backlog item "Dźwięki combat" (feature/rpg-combat had
+## none; added once the loop needed the polish). Same procedural approach as
+## everything above — no sample assets exist for this, matching this file's
+## own header note ("no sample assets exist to port at all"), and a single
+## fixed-frequency `play_tone()` can't do a real pitch sweep, so "swing"/
+## "hit" are approximated with the closest single-tone equivalent rather
+## than left silent.
+
+## Short high tick for a weapon swing — played on PlayerAttack.attack_started,
+## regardless of whether it connects (a swing makes a sound whether or not it
+## hits; play_hit() below is the separate "it landed" cue).
+func play_swing(volume: float = 1.0) -> void:
+	play_tone(900.0, 50.0, volume * 0.25)
+
+## Percussive thud for a landed hit (player's or an enemy's) — low frequency,
+## fast decay, deliberately punchier/louder than the swing tick above so a
+## connecting attack reads as distinct from a whiffed one.
+func play_hit(volume: float = 1.0) -> void:
+	play_tone(140.0, 90.0, volume * 0.45)
+
+## Three-note descending cue for an enemy's death — the inverse shape of
+## play_completion()'s ascending major triad above, so "defeat" and
+## "success" read as opposites using the same synthesis technique.
+func play_enemy_defeated(volume: float = 1.0) -> void:
+	play_tone(392.0, 120.0, volume * 0.35)
+	get_tree().create_timer(0.09).timeout.connect(play_tone.bind(330.0, 120.0, volume * 0.35))
+	get_tree().create_timer(0.18).timeout.connect(play_tone.bind(262.0, 180.0, volume * 0.35))

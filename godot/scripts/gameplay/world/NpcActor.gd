@@ -24,9 +24,11 @@ extends Area2D
 var _base_x: float
 var _dir: int = 1
 
+
 func _ready() -> void:
 	body_entered.connect(_on_body_entered)
 	_base_x = position.x
+
 
 func _physics_process(delta: float) -> void:
 	if patrol_range <= 0.0:
@@ -42,6 +44,7 @@ func _physics_process(delta: float) -> void:
 	position.x = next_x
 	scale.x = absf(scale.x) * _dir
 
+
 ## Safe to call right after instantiate(), before this node enters the tree —
 ## same @onready-timing reasoning as ItemPickup.set_shape_size().
 func set_shape_size(size: Vector2) -> void:
@@ -53,12 +56,15 @@ func set_shape_size(size: Vector2) -> void:
 	var hw := size.x / 2.0
 	var hh := size.y / 2.0
 	var visual: Polygon2D = $DebugVisual
-	visual.polygon = PackedVector2Array([Vector2(-hw, -hh), Vector2(hw, -hh), Vector2(hw, hh), Vector2(-hw, hh)])
+	visual.polygon = PackedVector2Array(
+		[Vector2(-hw, -hh), Vector2(hw, -hh), Vector2(hw, hh), Vector2(-hw, hh)]
+	)
 
 	var label: Label = $IconLabel
 	label.size = size
 	label.position = -size / 2.0
 	label.add_theme_font_size_override("font_size", roundi(size.y * 0.9))
+
 
 ## `icon` — see ItemPickup.set_icon() comment. Flips with the node's own
 ## `scale.x` during patrol (_physics_process() above), matching Phaser's
@@ -67,12 +73,22 @@ func set_icon(icon: String) -> void:
 	var label: Label = $IconLabel
 	label.text = icon
 
+
 func _on_body_entered(body: Node2D) -> void:
 	if not body.is_in_group("player"):
 		return
 	EventBus.npc_talked.emit(obj_id, npc_id)
 
+
 ## Called by InteractionDetector.gd when this is the nearest interactable and
 ## the player presses "interact".
 func interact(_player: Node) -> void:
 	EventBus.npc_talked.emit(obj_id, npc_id)
+
+
+## rpg.md backlog ("Ulubione miejsca") — duck-typed by InteractionDetector.gd
+## the same way `interact()` is: presence of this method (not a shared base
+## class) marks a node as favoritable. `npc_id` is the only human-readable
+## name NpcActor carries — no separate display-name export exists to prefer.
+func get_favorite_label() -> String:
+	return npc_id

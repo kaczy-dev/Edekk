@@ -8,7 +8,15 @@ extends RefCounted
 
 var tier: String
 var dist: float
+## rpg.md section 11 backlog ("Mapa/wskaźnik celu questa") — normalized
+## player-to-target vector, added alongside tier/dist (both already computed
+## from the same two positions in LevelRuntime._compute_tracks(), direction
+## is nearly free there) so HUD.gd's compass arrow doesn't need its own path
+## back to object positions (rule 6 — UI stays decoupled from gameplay,
+## same reasoning that keeps tier/dist here instead of raw positions).
+var direction: Vector2
 
-func _init(p_tier: String = "", p_dist: float = 0.0) -> void:
+func _init(p_tier: String = "", p_dist: float = 0.0, p_direction: Vector2 = Vector2.ZERO) -> void:
 	tier = p_tier
 	dist = p_dist
+	direction = p_direction

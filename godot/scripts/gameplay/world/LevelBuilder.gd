@@ -11,6 +11,7 @@ extends RefCounted
 const ItemPickupScene := preload("res://scenes/interactables/ItemPickup.tscn")
 const GoalAreaScene := preload("res://scenes/interactables/GoalArea.tscn")
 const NpcActorScene := preload("res://scenes/interactables/NpcActor.tscn")
+const EnemyActorScene := preload("res://scenes/enemies/EnemyActor.tscn")
 
 const DEFAULT_ITEM_ICON := "❓"
 const DEFAULT_GOAL_ICON := "❓"
@@ -28,7 +29,7 @@ const DEFAULT_NPC_ICON := "❓"
 ## glyph (ported from LevelScene.ts: `obj.icon ?? ITEMS[obj.itemId]?.emoji`
 ## — items render as emoji text there too, not custom sprites, so this is a
 ## 1:1 visual port, not a greybox stand-in).
-static func build(parent: Node2D, level: LevelData, collected_ids: Array = [], hide_obstacle_visual: bool = false, items: Dictionary = {}) -> Array:
+static func build(parent: Node2D, level: LevelData, collected_ids: Array = [], hide_obstacle_visual: bool = false, items: Dictionary = {}, enemies: Dictionary = {}) -> Array:
 	var interactables := []
 	for obj in level.objects:
 		match obj.kind:
@@ -48,6 +49,10 @@ static func build(parent: Node2D, level: LevelData, collected_ids: Array = [], h
 				var npc := _build_npc(obj)
 				parent.add_child(npc)
 				interactables.append(npc)
+			"enemy":
+				var enemy := _build_enemy(obj, enemies)
+				if enemy != null:
+					parent.add_child(enemy)
 			_:
 				push_warning("LevelBuilder: kind '%s' (obj '%s') not implemented yet" % [obj.kind, obj.id])
 	return interactables
@@ -135,6 +140,21 @@ static func _build_goal_area(obj: LevelObjectData) -> GoalArea:
 	goal.set_shape_size(obj.rect.size)
 	goal.set_icon(obj.icon if obj.icon != "" else DEFAULT_GOAL_ICON)
 	return goal
+
+## Not added to the `interactables` list build() returns — that list feeds
+## InteractionDetector (Items/NPCs, "press E"), and enemies aren't
+## interactable that way; they're driven by proximity/hitbox (EnemyStateMachine)
+## instead, same as combat has worked since feature/rpg-enemy.
+static func _build_enemy(obj: LevelObjectData, enemies: Dictionary) -> EnemyActor:
+	var data: EnemyData = enemies.get(obj.enemy_id)
+	if data == null:
+		push_warning("LevelBuilder: enemy '%s' (obj '%s') not found in EnemyRegistry" % [obj.enemy_id, obj.id])
+		return null
+	var enemy := EnemyActorScene.instantiate() as EnemyActor
+	enemy.name = "Enemy_%s" % obj.id
+	enemy.position = _rect_center(obj.rect)
+	enemy.enemy_data = data
+	return enemy
 
 static func _build_npc(obj: LevelObjectData) -> NpcActor:
 	var npc := NpcActorScene.instantiate() as NpcActor
