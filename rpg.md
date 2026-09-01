@@ -1656,3 +1656,56 @@ zamiast nowego równoległego systemu buffów.
   postawienia w scenie, analogicznie do wcześniejszych gotowych-ale-niepodłączonych
   komponentów tej sesji (`StreetEventSpawner`, `PoliceReactionSystem`).
 - **Bez wizualnej weryfikacji** — jak reszta tej sesji.
+
+## 19. Kryjówki/skróty odblokowywane po pokonaniu wroga lub zapłacie — ZROBIONE (2026-09-01)
+
+Kolejna pozycja z backlogu ("Kryjówki/skróty odblokowywane po pokonaniu wroga lub
+zapłacie"). Znaleziona jako uncommitted work na starcie tej rundy (`ProgressStore.gd`
+zmodyfikowany, `ShortcutGate.gd`/`.tscn` i oba pliki testowe już napisane) — ta sekcja
+domyka pracę: uruchamia format → cache-refresh → pełny pakiet testów i notuje wynik,
+zgodnie z zasadą "jedna runda = jeden wpis w rpg.md" z tego pliku.
+
+- **`ProgressStore.unlocked_shortcuts: Array[String]`** — nowe trwałe pole (zapis/odczyt/
+  reset, ten sam wzorzec co `unlocked_levels`/`favorite_places`), plus
+  `is_shortcut_unlocked()`/`unlock_shortcut()`. Brama raz odblokowana zostaje odblokowana
+  na zawsze — brak ścieżki ponownego zablokowania.
+- **`scripts/gameplay/world/ShortcutGate.gd`** (nowy, `class_name ShortcutGate`) +
+  `scenes/interactables/ShortcutGate.tscn` — duck-typed `interact(player)`, ten sam wzorzec
+  co `VendingMachine`/`NpcActor`/`TransitStation`, `InteractionDetector.gd` nietknięty. Dwie
+  niezależne ścieżki odblokowania (OR, nie AND): zapłata `unlock_cost` przez
+  `ProgressStore.spend_money()`, lub wcześniejsza śmierć `required_enemy_id` (nasłuch
+  `EventBus.enemy_died`) — pusty `required_enemy_id` oznacza "tylko za pieniądze". Fizyczne
+  blokowanie przejścia to osobny `StaticBody2D` (`Blocker`, warstwa World wg
+  `COLLISION_MATRIX.md`), nie samo `Area2D` — po odblokowaniu tylko wyłącza
+  `CollisionShape2D` bramy, sam węzeł zostaje w drzewie (identity/`obj_id` zachowane, bez
+  `queue_free()`) jako trwały element poziomu, zgodnie z konwencją "permanent progress"
+  reszty `ProgressStore`.
+- **Testy**: `tests/economy/test_progress_store_shortcuts.gd` (5 — locked na starcie,
+  unlock oznacza jako odblokowane, podwójny unlock bez duplikatu, reset relockuje, unlocks
+  przeżywają save/load) + `tests/world/test_shortcut_gate.gd` (7 — blokuje przejście gdy
+  zablokowana, brak pieniędzy nic nie robi + toast, wystarczające pieniądze odblokowuje i
+  wyłącza blocker, pokonanie wymaganego wroga odblokowuje za darmo bez wydawania pieniędzy,
+  śmierć niepowiązanego wroga nie odblokowuje, już-odblokowana brama startuje otwarta po
+  `_ready()`, interakcja z już-odblokowaną bramą to no-op bez ponownego obciążenia).
+- **Walidacja**: `gdscript-toolkit:gdscript-format --verify-structure` na wszystkich 4
+  plikach (już sformatowane, bez zmian), headless cache-refresh (nowy `class_name
+  ShortcutGate`) przed testami, pełny pakiet — **209/209 PASS, 376 asercji**
+  (`scripts/run_godot_tests.sh`, poprzednio 197/197 — 12 nowych testów dokładnie zgadza
+  się z liczbą dodanych). Boot-check (`godot --headless --quit-after 2`) czysty — 0 SCRIPT
+  ERROR/Parse Error.
+- **Nie wpięta jeszcze** w żaden poziom — `ShortcutGate.tscn` gotowa do ręcznego
+  postawienia w scenie, ten sam status co `CombatPickup`/`StreetEventSpawner`/
+  `PoliceReactionSystem` z poprzednich rund tej sesji.
+- **Bez wizualnej weryfikacji** — jak reszta tej sesji, ale runtime boot-check zrobiony
+  przez `godot-mcp` (`run_project`/`get_debug_output`) zamiast tylko headless
+  `--quit-after` — czysty log, jedyne ostrzeżenie to przedistniejące i niezwiązane
+  (`SettingsStore.gd:111`, enum-cast warning).
+- **Code review** (`godot-code-reviewer` subagent, `godot-code-review` skill) po
+  domknięciu rundy: dwa realne, ale niekrytyczne findingi naprawione od razu — węzły
+  `$IconLabel`/`$DebugVisual`/`$Blocker/CollisionShape2D` przepisane na `@onready var`
+  zamiast powtarzanego lookupu po ścieżce, i dodany `push_warning()` w `_ready()` gdy
+  `gate_id` jest puste (kolizja unlock-state dwóch źle skonfigurowanych bram). Trzeci
+  finding (brak jawnego `disconnect()` od `EventBus.enemy_died` w `_exit_tree()`) uznany
+  za nieszkodliwy — Godot automatycznie zrywa połączenia węzła-odbiorcy przy `free()` —
+  świadomie pominięty. Po poprawkach: format-clean, pełny pakiet ponownie **209/209
+  PASS, 376 asercji**.
